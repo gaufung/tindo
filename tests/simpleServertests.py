@@ -5,9 +5,10 @@ import unittest
 import sys
 from simpleserver.simpleserver import Dict, UTC, _RE_RESPONSE_STATUS, _RESPONSE_STATUSES
 from simpleserver.simpleserver import HttpError, RedirectError, badrequest,unauthorized, forbidden
-from simpleserver.simpleserver import  notfound, conflict, internalerror, redirect, found, seeother
-from simpleserver.simpleserver import  _to_str, _to_unicode, _quote, _unquote
-
+from simpleserver.simpleserver import notfound, conflict, internalerror, redirect, found, seeother
+from simpleserver.simpleserver import _to_str, _to_unicode, _quote, _unquote
+from simpleserver.simpleserver import get, post
+from simpleserver.simpleserver import _build_regex
 
 class TestDict(unittest.TestCase):
 
@@ -84,6 +85,33 @@ class TestEncode(unittest.TestCase):
         self.assertEqual(_quote('http://example/test?a=1+'), 'http%3A//example/test%3Fa%3D1%2B')
         self.assertEqual(_quote(u'hello world!'), 'hello%20world%21')
         self.assertEqual(_unquote('http%3A//example/test%3Fa%3D1+'), u'http://example/test?a=1+')
+
+
+@get('/test/:id')
+def testget():
+    return 'ok'
+
+
+@post('/post/:id')
+def testpost():
+    return '200'
+
+
+class TestMethods(unittest.TestCase):
+    def testMethod(self):
+        self.assertEqual(testget.__web_route__, '/test/:id')
+        self.assertEqual(testget.__web_method__, 'GET')
+        self.assertEqual(testpost.__web_route__, '/post/:id')
+        self.assertEqual(testpost.__web_method__, 'POST')
+
+
+class TestBuildRegex(unittest.TestCase):
+    def testBuild(self):
+        self.assertEqual(_build_regex('/path/to/:file'), '^\\/path\\/to\\/(?P<file>[^\\/]+)$')
+        self.assertEqual(_build_regex('/:user/:comments/list'),
+                         '^\\/(?P<user>[^\\/]+)\\/(?P<comments>[^\\/]+)\\/list$')
+        self.assertEqual(_build_regex(':id-:pid/:w'),
+                         '^(?P<id>[^\\/]+)\\-(?P<pid>[^\\/]+)\\/(?P<w>[^\\/]+)$')
 
 
 if __name__ == '__main__':

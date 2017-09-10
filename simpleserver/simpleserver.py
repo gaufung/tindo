@@ -5,6 +5,9 @@ A simple WSGI-compatible web framework
 import datetime
 import re
 import urllib
+import threading
+import os
+import mimetypes
 
 
 class Dict(dict):
@@ -23,6 +26,9 @@ class Dict(dict):
 
     def __setattr__(self, key, value):
         self[key] = value
+
+
+ctx = threading.local()
 
 
 _TIMEDELTA_ZERO = datetime.timedelta(0)
@@ -289,3 +295,135 @@ def _unquote(s, encoding='utf-8'):
     :return: str type
     """
     return urllib.unquote(s).decode(encoding)
+
+
+def get(path):
+    """
+     A @get decorator
+    :param path: the path
+    :return:
+    """
+    def _decorator(func):
+        func.__web_route__ = path
+        func.__web_method__ = 'GET'
+        return func
+    return _decorator
+
+
+def post(path):
+    """
+    A @post decorator
+    :param path: the path
+    :return:
+    """
+    def _decorator(func):
+        func.__web_route__ = path
+        func.__web_method__ = 'POST'
+        return func
+    return _decorator
+
+
+_re_route = re.compile(r'(\:[a-zA-Z_]\w*)')
+
+
+def _build_regex(path):
+    """
+    build path regex
+    :param path: the path
+    :return: regex pattern
+    """
+    re_list = ['^']
+    var_list = []
+    is_var = False
+    for v in _re_route.split(path):
+        if is_var:
+            var_name = v[1:]
+            var_list.append(var_name)
+            re_list.append(r'(?P<%s>[^\/]+)' % var_name)
+        else:
+            s = ''
+            for ch in v:
+                if '0' <= ch <= '9':
+                    s = s + ch
+                elif 'A' <= ch <= 'Z':
+                    s = s + ch
+                elif 'a' <= ch <= 'z':
+                    s = s + ch
+                else:
+                    s = s + '\\' + ch
+            re_list.append(s)
+        is_var = not is_var
+    re_list.append('$')
+    return ''.join(re_list)
+
+
+class Route(object):
+    """
+    A Route object is callable object.
+    """
+
+    def __init__(self, func):
+        self.path = func.__web_route__
+        self.method = func.__web_route__
+        self.is_static = _re_route.search(self.path) is None
+        if not self.is_static:
+            self.route = re.compile(_build_regex(self.path))
+        self.func = func
+
+    def match(self, url):
+        m = self.route.match(url)
+        if m:
+            return m.groups()
+        return None
+
+    def __call__(self, *args, **kwargs):
+        return self.func(*args)
+
+    def __str__(self):
+        if self.is_static:
+            return 'Route(static, %s, path=%s)' % (self.method, self.path)
+        return 'Route(dynamic, %s, path=%s)' %(self.method, self.path)
+
+    __repr__ = __str__
+
+
+def _static_file_generator(file_path):
+    block_size = 8192
+    with open(file_path, 'rb') as f:
+        block = f.read(block_size)
+        while block:
+            yield block
+            block = f.read(block_size)
+
+
+class StaticFileRoute(object):
+    def __int__(self):
+        self.method = 'GET'
+        self.is_static = False
+        self.route = re.compile('^/static/(.+)$')
+
+    def match(self, url):
+        if url.startswith('/static/'):
+            return (url[1:], )
+        return None
+
+    def __call__(self, *args, **kwargs):
+        fpath = os.path.join(ctx.application.document_root, args[0])
+        if not os.path.isfile(fpath):
+            raise notfound()
+        fext = os.path.splitext(fpath)[1]
+        ctx.response.content_type = mimetypes.types_map.get(fext.lower(), 'application/octet-stream')
+        return _static_file_generator(fpath)
+
+
+def favicon_handler():
+    return _static_file_generator('/favicon.ico')
+
+
+class MultipartFile(object):
+    """Multipart file storage get from request input.
+    """
+    def __init__(self, storage):
+        self.filename = _to_unicode(storage.filename)
+        self.file = storage.file
+

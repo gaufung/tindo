@@ -2,7 +2,7 @@ import sys
 sys.path.insert(0, '../')
 reload(sys)
 import unittest
-from simpleserver.simpleserver import Dict, UTC
+from simpleserver.simpleserver import Dict, UTC, _RE_RESPONSE_STATUS, _RESPONSE_STATUSES
 
 
 class TestDict(unittest.TestCase):
@@ -28,6 +28,11 @@ class TestUTC(unittest.TestCase):
         with self.assertRaises(ValueError):
             tzNone = UTC('az:08')
 
+
+class TestReponseStatus(unittest.TestCase):
+    def testMath(self):
+        for k, _ in _RESPONSE_STATUSES.items():
+            self.assertTrue(_RE_RESPONSE_STATUS.match(str(k)))
 
 if __name__ == '__main__':
     unittest.main()

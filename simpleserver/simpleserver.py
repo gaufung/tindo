@@ -177,3 +177,73 @@ _RESPONSE_HEADER_DICT = dict(zip(
 
 _HEADER_X_POWERED_BY = ('X-Powered-By', 'transwarp/1.0')
 
+
+class HttpError(Exception):
+    def __init__(self, code):
+        super(HttpError, self).__init__()
+        self.status = '%d %s' % (code, _RESPONSE_STATUSES[code])
+
+    def header(self, name, value):
+        if not hasattr(self, '_headers'):
+            self._headers = [_HEADER_X_POWERED_BY]
+        self._headers.append((name, value))
+
+    @property
+    def headers(self):
+        if hasattr(self, '_headers'):
+            return self._headers
+        return []
+
+    def __str__(self):
+        return self.status
+
+    __repr__ = __str__
+
+
+class RedirectError(HttpError):
+    def __init__(self, code, location):
+        super(RedirectError, self).__init__(code)
+        self.location = location
+
+    def __str__(self):
+        return '%s, %s' % (self.status, self.location)
+
+    __repr__ = __str__
+
+
+def badrequest():
+    return HttpError(400)
+
+
+def unauthorized():
+    return HttpError(401)
+
+
+def forbidden():
+    return HttpError(403)
+
+
+def notfound():
+    return HttpError(404)
+
+
+def conflict():
+    return HttpError(409)
+
+
+def internalerror():
+    return HttpError(500)
+
+
+def redirect(location):
+    return RedirectError(301, location)
+
+
+def found(location):
+    return RedirectError(302, location)
+
+
+def seeother(location):
+    return RedirectError(303, location)
+
+

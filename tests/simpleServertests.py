@@ -2,7 +2,10 @@ import sys
 sys.path.insert(0, '../')
 reload(sys)
 import unittest
+import sys
 from simpleserver.simpleserver import Dict, UTC, _RE_RESPONSE_STATUS, _RESPONSE_STATUSES
+from simpleserver.simpleserver import HttpError, RedirectError, badrequest,unauthorized, forbidden
+from simpleserver.simpleserver import  notfound, conflict, internalerror, redirect, found, seeother
 
 
 class TestDict(unittest.TestCase):
@@ -33,6 +36,40 @@ class TestReponseStatus(unittest.TestCase):
     def testMath(self):
         for k, _ in _RESPONSE_STATUSES.items():
             self.assertTrue(_RE_RESPONSE_STATUS.match(str(k)))
+
+
+class TestHttpError(unittest.TestCase):
+    def test404Error(self):
+        e = HttpError(404)
+        self.assertEqual(e.status, '404 Not Found')
+
+    def testRedirectError(self):
+        e = RedirectError(302, 'http://www.apple.com/')
+        self.assertEqual(e.status, '302 Found')
+        self.assertEqual(e.location, 'http://www.apple.com/')
+
+    def testRaiseError(self):
+        with self.assertRaises(HttpError):
+            raise badrequest()
+        self.assertEqual(str(sys.exc_value), '400 Bad Request')
+        with self.assertRaises(HttpError):
+            raise unauthorized()
+        self.assertEqual(str(sys.exc_value), '401 Unauthorized')
+        with self.assertRaises(HttpError):
+            raise forbidden()
+        self.assertEqual(str(sys.exc_value), '403 Forbidden')
+        with self.assertRaises(HttpError):
+            raise internalerror()
+        self.assertEqual(str(sys.exc_value), '500 Internal Server Error')
+        with self.assertRaises(HttpError):
+            raise redirect('http://www.itranswarp.com/')
+        self.assertEqual(str(sys.exc_value), '301 Moved Permanently, http://www.itranswarp.com/')
+        with self.assertRaises(HttpError):
+            raise found('http://www.itranswarp.com/')
+        self.assertEqual(str(sys.exc_value), '302 Found, http://www.itranswarp.com/')
+        with self.assertRaises(HttpError):
+            raise seeother('http://www.itranswarp.com/')
+        self.assertEqual(str(sys.exc_value), '303 See Other, http://www.itranswarp.com/')
 
 if __name__ == '__main__':
     unittest.main()

@@ -4,6 +4,7 @@ A simple WSGI-compatible web framework
 """
 import datetime
 import re
+import urllib
 
 
 class Dict(dict):
@@ -247,3 +248,44 @@ def seeother(location):
     return RedirectError(303, location)
 
 
+def _to_str(s):
+    """Convert to bytes
+    :param s: str or unicode
+    :return: str
+    """
+    if isinstance(s, str):
+        return s
+    if isinstance(s, unicode):
+        return s.encode('utf-8')
+    return str(s)
+
+
+def _to_unicode(s, encoding='utf-8'):
+    """Convert to unicode
+    :param s: str or unicode
+    :param encoding: encode type
+    :return: unocide
+    """
+    return s.decode(encoding)
+
+
+def _quote(s, encoding='utf-8'):
+    """
+    url quote to str.
+    :param s: url
+    :param encoding: encoding type
+    :return: quote
+    """
+    if isinstance(s, unicode):
+        s = s.encode(encoding)
+    return urllib.quote(s)
+
+
+def _unquote(s, encoding='utf-8'):
+    """
+    url unquote as unicode
+    :param s: unicode
+    :param encoding: encoding type
+    :return: str type
+    """
+    return urllib.unquote(s).decode(encoding)

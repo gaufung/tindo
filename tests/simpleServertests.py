@@ -6,6 +6,7 @@ import sys
 from simpleserver.simpleserver import Dict, UTC, _RE_RESPONSE_STATUS, _RESPONSE_STATUSES
 from simpleserver.simpleserver import HttpError, RedirectError, badrequest,unauthorized, forbidden
 from simpleserver.simpleserver import  notfound, conflict, internalerror, redirect, found, seeother
+from simpleserver.simpleserver import  _to_str, _to_unicode, _quote, _unquote
 
 
 class TestDict(unittest.TestCase):
@@ -70,6 +71,20 @@ class TestHttpError(unittest.TestCase):
         with self.assertRaises(HttpError):
             raise seeother('http://www.itranswarp.com/')
         self.assertEqual(str(sys.exc_value), '303 See Other, http://www.itranswarp.com/')
+
+
+class TestEncode(unittest.TestCase):
+    def testStrUnicode(self):
+        self.assertEqual(_to_str('s123'), 's123')
+        self.assertEqual(_to_str(u'\u4e2d\u6587'), '\xe4\xb8\xad\xe6\x96\x87')
+        self.assertEqual(_to_str(-123), '-123')
+        self.assertEqual(_to_unicode('\xe4\xb8\xad\xe6\x96\x87'), u'\u4e2d\u6587')
+
+    def testQuote(self):
+        self.assertEqual(_quote('http://example/test?a=1+'), 'http%3A//example/test%3Fa%3D1%2B')
+        self.assertEqual(_quote(u'hello world!'), 'hello%20world%21')
+        self.assertEqual(_unquote('http%3A//example/test%3Fa%3D1+'), u'http://example/test?a=1+')
+
 
 if __name__ == '__main__':
     unittest.main()

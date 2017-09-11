@@ -69,7 +69,7 @@ class UTC(datetime.tzinfo):
 
     __repr__ = __str__
 
-_RE_RESPONSE_STATUS = re.compile(r'^\d\d\d(\[\w\]+)?$')
+_RE_RESPONSE_STATUS = re.compile(r'^\d\d\d\s{1}.*$')
 
 # all known response status
 _RESPONSE_STATUSES = {

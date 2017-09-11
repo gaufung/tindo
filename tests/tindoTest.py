@@ -41,7 +41,7 @@ class TestUTC(unittest.TestCase):
 class TestReponseStatus(unittest.TestCase):
     def testMath(self):
         for k, _ in _RESPONSE_STATUSES.items():
-            self.assertTrue(_RE_RESPONSE_STATUS.match(str(k)))
+            self.assertTrue(_RE_RESPONSE_STATUS.match(str(k)+' '+_))
 
 
 class TestHttpError(unittest.TestCase):
@@ -233,6 +233,8 @@ class TestResponse(unittest.TestCase):
         self.assertEqual(r.status, '404 Not Found')
         with self.assertRaises(ValueError):
             r.status = 1000
+        r.status = '500 ERROR'
+        self.assertEqual(r.status, '500 ERROR')
 
 if __name__ == '__main__':
     unittest.main()

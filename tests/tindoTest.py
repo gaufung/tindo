@@ -3,12 +3,14 @@ sys.path.insert(0, '../')
 reload(sys)
 import unittest
 import sys
-from simpleserver.simpleserver import Dict, UTC, _RE_RESPONSE_STATUS, _RESPONSE_STATUSES
-from simpleserver.simpleserver import HttpError, RedirectError, badrequest,unauthorized, forbidden
-from simpleserver.simpleserver import notfound, conflict, internalerror, redirect, found, seeother
-from simpleserver.simpleserver import _to_str, _to_unicode, _quote, _unquote
-from simpleserver.simpleserver import get, post
-from simpleserver.simpleserver import _build_regex
+from tindo.tindo import Dict, UTC, _RE_RESPONSE_STATUS, _RESPONSE_STATUSES
+from tindo.tindo import HttpError, RedirectError, badrequest,unauthorized, forbidden
+from tindo.tindo import notfound, conflict, internalerror, redirect, found, seeother
+from tindo.tindo import _to_str, _to_unicode, _quote, _unquote
+from tindo.tindo import get, post
+from tindo.tindo import _build_regex, Request
+from StringIO import StringIO
+
 
 class TestDict(unittest.TestCase):
 
@@ -113,6 +115,72 @@ class TestBuildRegex(unittest.TestCase):
         self.assertEqual(_build_regex(':id-:pid/:w'),
                          '^(?P<id>[^\\/]+)\\-(?P<pid>[^\\/]+)\\/(?P<w>[^\\/]+)$')
 
+
+class TestRequest(unittest.TestCase):
+    def testGetItem(self):
+        r = Request({'REQUEST_METHOD':'POST', 'wsgi.input': StringIO('a=1&b=M%20M&c=ABC&c=XYZ&e=')})
+        self.assertEqual(r['a'], u'1')
+        self.assertEqual(r['c'], u'ABC')
+        with self.assertRaises(KeyError):
+            r['empty']
+
+        r = Request({'REQUEST_METHOD': 'POST', 'wsgi.input': StringIO('a=1&b=M%20M&c=ABC&c=XYZ&e=')})
+        self.assertEqual(r.get('a'), u'1')
+        self.assertEqual(r.gets('c'), [u'ABC', u'XYZ'])
+        with self.assertRaises(KeyError):
+            r.gets('empty')
+
+    def testInputItem(self):
+        r = Request({'REQUEST_METHOD': 'POST', 'wsgi.input': StringIO('a=1&b=M%20M&c=ABC&c=XYZ&e=')})
+        i = r.input(x=2017)
+        self.assertEqual(i.x, 2017)
+        self.assertEqual(i.a, u'1')
+        self.assertEqual(i.b, u'M M')
+        self.assertEqual(i.c, u'ABC')
+        self.assertEqual(i.get('d', u'2008'), '2008')
+
+    def testBody(self):
+        r = Request({'REQUEST_METHOD': 'POST', 'wsgi.input': StringIO('<xml><raw/>')})
+        self.assertEqual(r.get_body(), '<xml><raw/>')
+
+    def testRemote_Addr(self):
+        r = Request({'REMOTE_ADDR': '192.168.0.100'})
+        self.assertEqual(r.remote_addr, '192.168.0.100')
+
+    def testDocumentRoot(self):
+        r = Request({'DOCUMENT_ROOT': '/srv/path/to/doc'})
+        self.assertEqual(r.document_root, '/srv/path/to/doc')
+
+    def testQueryString(self):
+        r = Request({'QUERY_STRING': 'a=1&c=2'})
+        self.assertEqual(r.query_string, 'a=1&c=2')
+        r = Request({})
+        self.assertEqual(r.query_string, '')
+
+    def testRequestMethod(self):
+        r = Request({'REQUEST_METHOD': 'GET'})
+        self.assertEqual(r.request_method, 'GET')
+        r = Request({'REQUEST_METHOD': 'POST'})
+        self.assertEqual(r.request_method, 'POST')
+
+    def testPathInfo(self):
+        r = Request({'PATH_INFO': '/test/a%20b.html'})
+        self.assertEqual(r.path_info, '/test/a b.html')
+
+    def testHost(self):
+        r = Request({'HTTP_HOST': 'localhost:8080'})
+        self.assertEqual(r.host, 'localhost:8080')
+
+    def testHeader(self):
+        r = Request({'HTTP_USER_AGENT': 'Mozilla/5.0', 'HTTP_ACCEPT': 'text/html'})
+        H = r.headers
+        self.assertEqual(H['ACCEPT'], 'text/html')
+        self.assertEqual(H['USER-AGENT'], 'Mozilla/5.0')
+
+    def testCookies(self):
+        r = Request({'HTTP_COOKIE': 'A=123; url=http%3A%2F%2Fwww.example.com%2F'})
+        self.assertEqual(r.cookies['A'], '123')
+        self.assertEqual(r.cookies['url'], u'http://www.example.com/')
 
 if __name__ == '__main__':
     unittest.main()

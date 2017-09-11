@@ -8,6 +8,8 @@ import urllib
 import threading
 import os
 import mimetypes
+import cgi
+import doctest
 
 
 class Dict(dict):
@@ -54,7 +56,7 @@ class UTC(datetime.tzinfo):
         else:
             raise ValueError('bad utc time zone')
 
-    def utcoffset(self,dt):
+    def utcoffset(self, dt):
         return self._utf_offset
 
     def dst(self, dt):
@@ -68,7 +70,7 @@ class UTC(datetime.tzinfo):
 
     __repr__ = __str__
 
-_RE_RESPONSE_STATUS = re.compile(r'^\d\d\d(\ [\w\ ]+)?$')
+_RE_RESPONSE_STATUS = re.compile(r'^\d\d\d(\[\w\]+)?$')
 
 # all known response status
 _RESPONSE_STATUSES = {
@@ -382,7 +384,7 @@ class Route(object):
     def __str__(self):
         if self.is_static:
             return 'Route(static, %s, path=%s)' % (self.method, self.path)
-        return 'Route(dynamic, %s, path=%s)' %(self.method, self.path)
+        return 'Route(dynamic, %s, path=%s)' % (self.method, self.path)
 
     __repr__ = __str__
 
@@ -404,7 +406,7 @@ class StaticFileRoute(object):
 
     def match(self, url):
         if url.startswith('/static/'):
-            return (url[1:], )
+            return url[1:],
         return None
 
     def __call__(self, *args, **kwargs):
@@ -427,3 +429,186 @@ class MultipartFile(object):
         self.filename = _to_unicode(storage.filename)
         self.file = storage.file
 
+
+class Request(object):
+    """
+     Request object for obtaining all http request information.
+    """
+    def __init__(self, environ):
+        self._environ = environ
+
+    def _parse_input(self):
+        def _convert(item):
+            if isinstance(item, list):
+                return [_to_unicode(i.value) for i in item]
+            if item.filename:
+                return MultipartFile(item)
+            return _to_unicode(item.value)
+        fs = cgi.FieldStorage(fp=self._environ['wsgi.input'], environ=self._environ, keep_blank_values=True)
+        inputs = dict()
+        for key in fs:
+            inputs[key] = _convert(fs[key])
+        return inputs
+
+    def _get_raw_input(self):
+        """
+        Get raw input as dict containing values as unicode, list or MultipartFile.
+        :return:
+        """
+        if not hasattr(self, '_raw_input'):
+            self._raw_input = self._parse_input()
+        return self._raw_input
+
+    def __getitem__(self, key):
+        """
+        Get input parameter value. If the specified key has multiple value, the first one is returned.
+        If the specified key is not exist, then raise KeyError.
+        """
+        r = self._get_raw_input()[key]
+        if isinstance(r, list):
+            return r[0]
+        return r
+
+    def get(self, key, default=None):
+        """
+        The same as request[key], but return default value if key is not found.
+        :param key:
+        :param default:
+        :return:
+        """
+        r = self._get_raw_input().get(key, default)
+        if isinstance(r, list):
+            return r[0]
+        return r
+
+    def gets(self, key):
+        """
+        Get multiple values for specified key.
+        :param key:
+        :return:
+        """
+        r = self._get_raw_input()[key]
+        if isinstance(r, list):
+            return r[:]
+        return [r]
+
+    def input(self, **kw):
+        """
+        Get input as dict from request, fill dict using provided default value if key not exist.
+
+        i = ctx.request.input(role='guest')
+        i.role ==> 'guest'
+        :param kw:
+        :return:
+        """
+        copy = Dict(**kw)
+        raw = self._get_raw_input()
+        for k, v in raw.iteritems():
+            copy[k] = v[0] if isinstance(v, list) else v
+        return copy
+
+    def get_body(self):
+        """
+        Get raw data from HTTP POST and return as str.
+        :return:
+        """
+        fp = self._environ['wsgi.input']
+        return fp.read()
+
+    @property
+    def remote_addr(self):
+        """
+        Get remote addr. Return '0.0.0.0' if cannot get remote_addr.
+        """
+        return self._environ.get('REMOTE_ADDR', '0.0.0.0')
+
+    @property
+    def document_root(self):
+        """
+        Get raw document_root as str. Return '' if no document_root.
+        """
+        return self._environ.get('DOCUMENT_ROOT', '')
+
+    @property
+    def query_string(self):
+        """
+        Get raw query string as str. Return '' if no query string.
+        """
+        return self._environ.get('QUERY_STRING', '')
+
+    @property
+    def environ(self):
+        """
+        Get raw environ as dict, both key, value are str.
+        """
+        return self._environ
+
+    @property
+    def request_method(self):
+        """
+        Get request method. The valid returned values are 'GET', 'POST', 'HEAD'.
+        """
+        return self._environ['REQUEST_METHOD']
+
+    @property
+    def path_info(self):
+        """
+        Get request path as str.
+        """
+        return urllib.unquote(self._environ.get('PATH_INFO', ''))
+
+    @property
+    def host(self):
+        """
+        Get request host as str. Default to '' if cannot get host..
+        """
+        return self._environ.get('HTTP_HOST', '')
+
+    def _get_headers(self):
+        if not hasattr(self, '_headers'):
+            hdrs = {}
+            for k, v in self._environ.iteritems():
+                if k.startswith('HTTP_'):
+                    # convert 'HTTP_ACCEPT_ENCODING' to 'ACCEPT-ENCODING'
+                    hdrs[k[5:].replace('_', '-').upper()] = v.decode('utf-8')
+            self._headers = hdrs
+        return self._headers
+
+    @property
+    def headers(self):
+        """
+        Get all HTTP headers with key as str and value as unicode. The header names are 'XXX-XXX' uppercase.
+        """
+        return dict(**self._get_headers())
+
+    def header(self, header, default=None):
+        """
+        Get header from request as unicode, return None if not exist, or default if specified.
+        The header name is case-insensitive such as 'USER-AGENT' or u'content-Type'.
+        """
+        return self._get_headers().get(header.upper(), default)
+
+    def _get_cookies(self):
+        if not hasattr(self, '_cookies'):
+            cookies = {}
+            cookie_str = self._environ.get('HTTP_COOKIE')
+            if cookie_str:
+                for c in cookie_str.split(';'):
+                    pos = c.find('=')
+                    if pos>0:
+                        cookies[c[:pos].strip()] = _unquote(c[pos+1:])
+            self._cookies = cookies
+        return self._cookies
+
+    @property
+    def cookies(self):
+        """
+        Return all cookies as dict. The cookie name is str and values is unicode.
+        """
+        return Dict(**self._get_cookies())
+
+    def cookie(self, name, default=None):
+        """
+        Return specified cookie value as unicode. Default to None if cookie not exists.
+        """
+        return self._get_cookies().get(name, default)

@@ -3,6 +3,7 @@ sys.path.insert(0, '../')
 reload(sys)
 import unittest
 import sys
+import datetime
 from tindo.tindo import Dict, UTC, _RE_RESPONSE_STATUS, _RESPONSE_STATUSES
 from tindo.tindo import HttpError, RedirectError, badrequest,unauthorized, forbidden
 from tindo.tindo import notfound, conflict, internalerror, redirect, found, seeother
@@ -10,6 +11,7 @@ from tindo.tindo import _to_str, _to_unicode, _quote, _unquote
 from tindo.tindo import get, post
 from tindo.tindo import _build_regex, Request
 from StringIO import StringIO
+from tindo.tindo import Response
 
 
 class TestDict(unittest.TestCase):
@@ -181,6 +183,56 @@ class TestRequest(unittest.TestCase):
         r = Request({'HTTP_COOKIE': 'A=123; url=http%3A%2F%2Fwww.example.com%2F'})
         self.assertEqual(r.cookies['A'], '123')
         self.assertEqual(r.cookies['url'], u'http://www.example.com/')
+
+
+class TestResponse(unittest.TestCase):
+    def testHeaders(self):
+        r = Response()
+        self.assertEqual(r.headers, [('Content-Type', 'text/html; charset=utf-8'), ('X-Powered-By', 'transwarp/1.0')])
+        r.set_cookie('s1', 'ok', 3600)
+        self.assertEqual(r.headers,
+                         [('Content-Type', 'text/html; charset=utf-8'),
+                          ('Set-Cookie', 's1=ok; Max-Age=3600; Path=/; HttpOnly'),
+                          ('X-Powered-By', 'transwarp/1.0')])
+        self.assertEqual(r.header('content-type'), 'text/html; charset=utf-8')
+        self.assertEqual(r.header('CONTENT-type'), 'text/html; charset=utf-8')
+        r.unset_header('content-type')
+        self.assertEqual(r.header('content-type'), None)
+        r.set_header('content-type', 'image/png')
+        self.assertEqual(r.header('content-type'), 'image/png')
+
+    def testContent(self):
+        r = Response()
+        self.assertEqual(r.content_type, 'text/html; charset=utf-8')
+        r.content_type = 'text/json'
+        self.assertEqual(r.content_type, 'text/json')
+
+        r.content_length = 100
+        self.assertEqual(r.content_length, '100')
+        r.content_length = '1024'
+        self.assertEqual(r.content_length, '1024')
+
+    def testCookies(self):
+        r = Response()
+        r.set_cookie('company', 'Abc, Inc.', max_age=3600)
+        self.assertEqual(r._cookies, {'company': 'company=Abc%2C%20Inc.; Max-Age=3600; Path=/; HttpOnly'})
+        r.set_cookie('company', r'Example="Limited"', expires=1342274794.123, path='/sub/')
+        self.assertEqual(r._cookies,
+                         {'company': 'company=Example%3D%22Limited%22; Expires=Sat, 14-Jul-2012 14:06:34 GMT; Path=/sub/; HttpOnly'})
+        dt = datetime.datetime(2012, 7, 14, 22, 6, 34, tzinfo=UTC('+8:00'))
+        r.set_cookie('company', 'Expires', expires=dt)
+        self.assertEqual(r._cookies, {'company': 'company=Expires; Expires=Sat, 14-Jul-2012 14:06:34 GMT; Path=/; HttpOnly'})
+        r.unset_cookie('company')
+        self.assertEqual(r._cookies, {})
+
+    def testStatus(self):
+        r = Response()
+        self.assertEqual(r.status_code, 200)
+        self.assertEqual(r.status, '200 OK')
+        r.status = 404
+        self.assertEqual(r.status, '404 Not Found')
+        with self.assertRaises(ValueError):
+            r.status = 1000
 
 if __name__ == '__main__':
     unittest.main()

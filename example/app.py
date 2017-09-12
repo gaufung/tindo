@@ -3,7 +3,7 @@ import sys
 sys.path.insert(0, '../')
 reload(sys)
 import os
-from tindo.tindo import WSGIApplication, Jinja2TemplateEngine
+from tindo import WSGIApplication, Jinja2TemplateEngine
 
 wsgi = WSGIApplication(os.path.dirname(os.path.abspath(__file__)))
 

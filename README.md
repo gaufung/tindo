@@ -1,2 +1,1 @@
-# tindo
-Tindo: A Simple WSGI Compatible Web Framwork
+**tindo:** A Simplest WSGI-compatible Framerok

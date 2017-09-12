@@ -2,7 +2,7 @@
 import sys
 sys.path.insert(0, '../')
 reload(sys)
-from tindo.tindo import get, view
+from tindo import get, view
 
 
 @view('index.html')

@@ -4,16 +4,16 @@ reload(sys)
 import unittest
 import sys
 import datetime
-from tindo.tindo import Dict, UTC, _RE_RESPONSE_STATUS, _RESPONSE_STATUSES
-from tindo.tindo import HttpError, RedirectError, badrequest,unauthorized, forbidden
-from tindo.tindo import notfound, conflict, internalerror, redirect, found, seeother
-from tindo.tindo import _to_str, _to_unicode, _quote, _unquote
-from tindo.tindo import get, post
-from tindo.tindo import _build_regex, Request
+from tindo import Dict, UTC, _RE_RESPONSE_STATUS, _RESPONSE_STATUSES
+from tindo import HttpError, RedirectError, badrequest,unauthorized, forbidden
+from tindo import internalerror, redirect, found, seeother
+from tindo import _to_str, _to_unicode, _quote, _unquote
+from tindo import get, post
+from tindo import _build_regex, Request
 from StringIO import StringIO
-from tindo.tindo import Response
-from tindo.tindo import _build_interceptor_chain, interceptor, ctx
-from tindo.tindo import _load_module
+from tindo import Response
+from tindo import _build_interceptor_chain, interceptor, ctx
+from tindo import _load_module
 
 
 class TestDict(unittest.TestCase):

@@ -368,8 +368,8 @@ class Route(object):
 
     def __init__(self, func):
         self.path = func.__web_route__
-        self.method = func.__web_route__
-        self.is_static = _re_route.search(self.path) is None
+        self.method = func.__web_method__
+        self.is_static = _re_route.search(self.path) is not None
         if not self.is_static:
             self.route = re.compile(_build_regex(self.path))
         self.func = func
@@ -380,7 +380,7 @@ class Route(object):
             return m.groups()
         return None
 
-    def __call__(self, *args, **kwargs):
+    def __call__(self, *args):
         return self.func(*args)
 
     def __str__(self):
@@ -854,7 +854,7 @@ class WSGIApplication(object):
 
     def add_module(self, mod):
         self._check_not_running()
-        m = mod if isinstance(type(mod), types.ModuleType) else _load_module(mod)
+        m = mod if type(mod) == types.ModuleType else _load_module(mod)
         logging.info('Add module: %s' % m.__name__)
         for name in dir(m):
             fn = getattr(m, name)
@@ -904,7 +904,7 @@ class WSGIApplication(object):
                     return fn()
                 for fn in self._get_dynamic:
                     args = fn.match(path_info)
-                    if args:
+                    if args is not None:
                         return fn(*args)
                 raise notfound()
             if request_method == 'POST':

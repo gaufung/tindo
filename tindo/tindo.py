@@ -882,7 +882,7 @@ class WSGIApplication(object):
         logging.info('Add interceptor %s' % str(func))
 
     def run(self, port=9000, host='127.0.0.1'):
-        from wsgiref.simple_server import  make_server
+        from wsgiref.simple_server import make_server
         logging.info('application (%s) will start at %s:%s' % (self._document_root, host, port))
         server = make_server(host, port, self.get_wsgi_application(debug=True))
         server.serve_forever()
@@ -920,9 +920,9 @@ class WSGIApplication(object):
 
         fn_exec = _build_interceptor_chain(fn_route, *self._interceptors)
 
-        def wsgi(env, start_response):
+        def wsgi(environ, start_response):
             ctx.application = _application
-            ctx.request = Request(env)
+            ctx.request = Request(environ)
             response = ctx.response = Response()
             try:
                 r = fn_exec()
@@ -953,7 +953,10 @@ class WSGIApplication(object):
                 fp.close()
                 start_response('500 Internal Server Error', [])
                 return [
-                    r'''<html><body><h1>500 Internal Server Error</h1><div style="font-family:Monaco, Menlo, Consolas, 'Courier New', monospace;"><pre>''',
+                    r'''<html><body><h1>
+                    500 Internal Server Error</h1>
+                    <div style="font-family:Monaco, Menlo, Consolas, 'Courier New', monospace;">
+                    <pre>''',
                     stacks.replace('<', '&lt;').replace('>', '&gt;'),
                     '</pre></div></body></html>']
             finally:

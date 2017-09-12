@@ -12,6 +12,8 @@ from tindo.tindo import get, post
 from tindo.tindo import _build_regex, Request
 from StringIO import StringIO
 from tindo.tindo import Response
+from tindo.tindo import _build_interceptor_chain, interceptor, ctx
+from tindo.tindo import _load_module
 
 
 class TestDict(unittest.TestCase):
@@ -235,6 +237,53 @@ class TestResponse(unittest.TestCase):
             r.status = 1000
         r.status = '500 ERROR'
         self.assertEqual(r.status, '500 ERROR')
+
+
+def target():
+    print('target')
+    return 123
+
+@interceptor('/')
+def f1(next):
+    print('before f1')
+    return  next()
+
+@interceptor('/test/')
+def f2(next):
+    print('Before f2')
+    try:
+        return next()
+    finally:
+        print('After f2')
+
+@interceptor('/')
+def f3(next):
+    print('Before f3')
+    try:
+        return next()
+    finally:
+        print('After f3')
+
+
+class TestInterceptorChain(unittest.TestCase):
+    def testChian(self):
+        chain = _build_interceptor_chain(target, f1, f2, f3)
+        ctx.request = Dict(path_info='/test/abc')
+        chain()
+        print('-------')
+        ctx.request = Dict(path_info='/api/')
+        chain()
+
+
+class TestLoadModule(unittest.TestCase):
+    def testModule(self):
+        m = _load_module('xml')
+        self.assertEqual(m.__name__, 'xml')
+        m = _load_module('xml.sax')
+        self.assertEqual(m.__name__, 'xml.sax')
+        m = _load_module('xml.sax.handler')
+        self.assertEqual(m.__name__, 'xml.sax.handler')
+
 
 if __name__ == '__main__':
     unittest.main()

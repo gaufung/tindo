@@ -13,7 +13,7 @@ wsgi.template_engine = template_engine
 
 import urls
 
-wsgi.add_module(urls)
+wsgi.add_module('urls')
 
 if __name__ == '__main__':
     wsgi.run()

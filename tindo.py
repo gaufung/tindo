@@ -403,7 +403,7 @@ def _static_file_generator(file_path):
 class StaticFileRoute(object):
     def __int__(self):
         self.method = 'GET'
-        self.is_static = False
+        self.is_static = True
         self.route = re.compile('^/static/(.+)$')
 
     @staticmethod
@@ -583,7 +583,7 @@ class Request(object):
             if cookie_str:
                 for c in cookie_str.split(';'):
                     pos = c.find('=')
-                    if pos>0:
+                    if pos > 0:
                         cookies[c[:pos].strip()] = _unquote(c[pos+1:])
             self._cookies = cookies
         return self._cookies
@@ -913,7 +913,7 @@ class WSGIApplication(object):
                     return fn()
                 for fn in self._post_dynamic:
                     args = fn.match(path_info)
-                    if args:
+                    if args is not None:
                         return fn(*args)
                 raise notfound()
             raise badrequest()
@@ -964,9 +964,5 @@ class WSGIApplication(object):
                 del ctx.request
                 del ctx.response
         return wsgi
-
-
-
-
 
 

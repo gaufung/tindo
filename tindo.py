@@ -1,6 +1,11 @@
 # -*- coding:utf-8 -*-
 """
-A simple WSGI-compatible web framework
+    tindo
+
+    A micro-framework based on wsgiref
+
+    :copyright: (c) 2017 by gau fung
+    :license: MIT, see license for more details
 """
 import datetime
 import re
@@ -369,7 +374,7 @@ class Route(object):
     def __init__(self, func):
         self.path = func.__web_route__
         self.method = func.__web_method__
-        self.is_static = _re_route.search(self.path) is not None
+        self.is_static = _re_route.search(self.path) is None
         if not self.is_static:
             self.route = re.compile(_build_regex(self.path))
         self.func = func

@@ -332,7 +332,20 @@ def post(path):
     return _decorator
 
 
-_re_route = re.compile(r'(\:[a-zA-Z_]\w*)')
+_re_route = re.compile(r'<([a-zA-Z_]\w*)>')
+
+
+def _re_char(ch):
+    s = ''
+    if '0' <= ch <= '9':
+        s = s + ch
+    elif 'a' <= ch <= 'z':
+        s = s + ch
+    elif '0' <= ch <= '9':
+        s = s + ch
+    else:
+        s = s + '\\' + ch
+    return s
 
 
 def _build_regex(path):
@@ -342,26 +355,14 @@ def _build_regex(path):
     :return: regex pattern
     """
     re_list = ['^']
-    var_list = []
-    is_var = False
-    for v in _re_route.split(path):
-        if is_var:
-            var_name = v[1:]
-            var_list.append(var_name)
-            re_list.append(r'(?P<%s>[^\/]+)' % var_name)
-        else:
-            s = ''
-            for ch in v:
-                if '0' <= ch <= '9':
-                    s = s + ch
-                elif 'A' <= ch <= 'Z':
-                    s = s + ch
-                elif 'a' <= ch <= 'z':
-                    s = s + ch
-                else:
-                    s = s + '\\' + ch
-            re_list.append(s)
-        is_var = not is_var
+    m = _re_route.search(path)
+    if m:
+        for i in range(0, m.start()):
+            re_list.append(_re_char(path[i]))
+        re_list.append(r'(?P<%s>[^\/]+)' % m.group(1))
+    else:
+        for ch in path:
+            re_list.append(_re_char(ch))
     re_list.append('$')
     return ''.join(re_list)
 
@@ -747,18 +748,6 @@ class Jinja2TemplateEngine(TemplateEngine):
 
     def __call__(self, path, model):
         return self._env.get_template(path).render(**model).encode('utf-8')
-
-
-def _default_error_handle(e, start_response, is_debug=True):
-    if isinstance(e, HttpError):
-        logging.info('HttpError: %s' % e.status)
-        headers = e.headers[:]
-        headers.append(('Content-Type', 'text/html'))
-        start_response(e.status, headers)
-        return ['<html><body><h1>%s</h1></body></html>' % e.status]
-    logging.exception('Exception: ')
-    start_response('500 Internal Server Error', [('Content-Type', 'text/html'), _HEADER_X_POWERED_BY])
-    return ['<html><body><h1>500 Internal Server Error</h1><h3>%s</h3></body></html>' % str(e)]
 
 
 def view(path):

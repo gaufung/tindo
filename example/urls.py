@@ -2,7 +2,7 @@
 import sys
 sys.path.insert(0, '../')
 reload(sys)
-from tindo import get, view, post, ctx, redirect
+from tindo import get, view, post, ctx
 
 
 @view('index.html')
@@ -11,8 +11,23 @@ def index():
     return dict()
 
 
-@view('index.html')
+@view('register.html')
+@get('/register')
+def register():
+    return dict()
+
+
+@view('registered.html')
+@post('/registered')
+def registered():
+    i = ctx.request.input(firstname='', lastname='')
+    return dict(firstname=i.get('firstname', ''), lastname=i.get('lastname', ''))
+
+
+@view('name.html')
 @get('/user/<username>')
-def home(name):
+def user(name):
     return dict(name=name)
+
+
 

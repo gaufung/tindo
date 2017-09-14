@@ -30,4 +30,11 @@ def user(name):
     return dict(name=name)
 
 
+@view('comment.html')
+@get('/user/<name>/<group>')
+def comment(name, group):
+    return dict(name=name, group=group)
+
+
+
 

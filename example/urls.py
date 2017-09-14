@@ -2,13 +2,18 @@
 import sys
 sys.path.insert(0, '../')
 reload(sys)
-from tindo import get, view, post, ctx
+from tindo import get, view, post, ctx, redirect
 
 
-# @view('index.html')
-# @get('/')
-# def index():
-#     return dict(name='gaofeng')
+@view('index.html')
+@get('/')
+def index():
+    return dict(name='gaofeng')
+
+
+@get('/home')
+def home():
+    raise redirect('/')
 
 
 # @get('/name')

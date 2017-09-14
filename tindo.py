@@ -228,39 +228,39 @@ class RedirectError(HttpError):
 
 
 def badrequest():
-    return HttpError(400)
+    raise HttpError(400)
 
 
 def unauthorized():
-    return HttpError(401)
+    raise HttpError(401)
 
 
 def forbidden():
-    return HttpError(403)
+    raise HttpError(403)
 
 
 def notfound():
-    return HttpError(404)
+    raise HttpError(404)
 
 
 def conflict():
-    return HttpError(409)
+    raise HttpError(409)
 
 
 def internalerror():
-    return HttpError(500)
+    raise HttpError(500)
 
 
 def redirect(location):
-    return RedirectError(301, location)
+    raise RedirectError(301, location)
 
 
 def found(location):
-    return RedirectError(302, location)
+    raise RedirectError(302, location)
 
 
 def seeother(location):
-    return RedirectError(303, location)
+    raise RedirectError(303, location)
 
 
 def _to_str(s):
@@ -779,47 +779,6 @@ def view(path):
     return _decorator
 
 
-_RE_INTERCEPTROR_STARTS_WITH = re.compile(r'^([^\*\?]+)\*?$')
-
-
-_RE_INTERCEPTROR_ENDS_WITH = re.compile(r'^\*([^\*\?]+)$')
-
-
-def _build_pattern_fn(pattern):
-    m = _RE_INTERCEPTROR_STARTS_WITH.match(pattern)
-    if m:
-        return lambda p: p.startswith(m.group(1))
-    m = _RE_INTERCEPTROR_ENDS_WITH.match(pattern)
-    if m:
-        return lambda p: p .endswith(pattern)
-    raise ValueError('Invalid pattern definition in interceptor ')
-
-
-def interceptor(pattern='/'):
-    def _decorator(func):
-        func.__interceptor__ = _build_pattern_fn(pattern)
-        return func
-    return _decorator
-
-
-def _build_interceptor_fn(func, next):
-    def _wrapper():
-        if func.__interceptor__(ctx.request.path_info):
-            return func(next)
-        else:
-            return next()
-    return _wrapper
-
-
-def _build_interceptor_chain(last_fn, *interceptors):
-    L = list(interceptors)
-    L.reverse()
-    fn = last_fn
-    for f in L:
-        fn = _build_interceptor_fn(f, fn)
-    return fn
-
-
 def _load_module(module_name):
     last_dot = module_name.rfind('.')
     if last_dot == (-1):
@@ -921,16 +880,14 @@ class WSGIApplication(object):
                     if args is not None:
                         return fn(*args)
                 raise notfound()
-            raise badrequest()
-
-        fn_exec = _build_interceptor_chain(fn_route, *self._interceptors)
+            badrequest()
 
         def wsgi(environ, start_response):
             ctx.application = _application
             ctx.request = Request(environ)
             response = ctx.response = Response()
             try:
-                r = fn_exec()
+                r = fn_route()
                 if isinstance(r, Template):
                     r = self._template_engine(r.template_name, r.model)
                 if isinstance(r, unicode):

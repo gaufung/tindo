@@ -13,7 +13,7 @@ app.template_engine = template_engine
 
 import urls
 
-app.add_module('urls')
+app.add_module(urls)
 
 if __name__ == '__main__':
     app.run()

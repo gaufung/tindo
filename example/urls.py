@@ -11,8 +11,14 @@ def index():
     return dict()
 
 
-@view('index.html')
+@view('register.html')
+@get('/register')
+def register():
+    return dict()
+
+
+@view('name.html')
 @get('/user/<username>')
-def home(name):
+def user(name):
     return dict(name=name)
 

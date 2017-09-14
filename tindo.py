@@ -4,7 +4,7 @@
 
     A micro-framework based on wsgiref
 
-    :copyright: (c) 2017 by gau fung
+    :copyright: (c) 2017 by Gau Fung
     :license: MIT, see license for more details
 """
 import datetime
@@ -375,9 +375,7 @@ class Route(object):
     def __init__(self, func):
         self.path = func.__web_route__
         self.method = func.__web_method__
-        self.is_static = _re_route.search(self.path) is None
-        if not self.is_static:
-            self.route = re.compile(_build_regex(self.path))
+        self.route = re.compile(_build_regex(self.path))
         self.func = func
 
     def match(self, url):
@@ -390,9 +388,7 @@ class Route(object):
         return self.func(*args)
 
     def __str__(self):
-        if self.is_static:
-            return 'Route(static, %s, path=%s)' % (self.method, self.path)
-        return 'Route(dynamic, %s, path=%s)' % (self.method, self.path)
+        return '(%s, path=%s)' % (self.method, self.path)
 
     __repr__ = __str__
 
@@ -779,22 +775,20 @@ def _load_module(module_name):
 
 
 class Tindo(object):
-    def __init__(self, document_root=None, **kw):
+    def __init__(self, document_root, template_engine=None, **kw):
         self._running = False
         self._document_root = document_root
 
         self._interceptors = []
-        self._template_engine = None
-
-        self._get_static = {}
-        self._post_static = {}
+        self._template_engine = Jinja2TemplateEngine(
+            os.path.join(self._document_root, 'templates')) if template_engine is None else None
 
         self._get_dynamic = []
         self._post_dynamic = []
 
     def _check_not_running(self):
         if self._running:
-            raise RuntimeError('Cannot modify the WSGIApplication when running')
+            raise RuntimeError('Cannot modify the tindo when running')
 
     @property
     def template_engine(self):
@@ -807,7 +801,7 @@ class Tindo(object):
 
     def add_module(self, mod):
         self._check_not_running()
-        m = mod if type(mod) == types.ModuleType else _load_module(mod)
+        m = mod if isinstance(mod, types.ModuleType) else _load_module(mod)
         logging.info('Add module: %s' % m.__name__)
         for name in dir(m):
             fn = getattr(m, name)
@@ -817,16 +811,10 @@ class Tindo(object):
     def add_url(self, func):
         self._check_not_running()
         route = Route(func)
-        if route.is_static:
-            if route.method == 'GET':
-                self._get_static[route.path] = route
-            if route.method == 'POST':
-                self._post_static[route.path] = route
-        else:
-            if route.method == 'GET':
-                self._get_dynamic.append(route)
-            if route.method == 'POST':
-                self._post_dynamic.append(route)
+        if route.method == 'GET':
+            self._get_dynamic.append(route)
+        if route.method == 'POST':
+            self._post_dynamic.append(route)
         logging.info('Add route: %s' % str(route))
 
     def add_interceptor(self, func):
@@ -842,8 +830,7 @@ class Tindo(object):
 
     def get_wsgi_application(self, debug=False):
         self._check_not_running()
-        if debug:
-            self._get_dynamic.append(StaticFileRoute())
+        self._get_dynamic.append(StaticFileRoute())
         self._running = True
 
         _application = Dict(document_root=self._document_root)
@@ -852,18 +839,12 @@ class Tindo(object):
             request_method = ctx.request.request_method
             path_info = ctx.request.path_info
             if request_method == 'GET':
-                fn = self._get_static.get(path_info, None)
-                if fn:
-                    return fn()
                 for fn in self._get_dynamic:
                     args = fn.match(path_info)
                     if args is not None:
                         return fn(*args)
                 raise notfound()
             if request_method == 'POST':
-                fn = self._post_static.get(path_info, None)
-                if fn:
-                    return fn()
                 for fn in self._post_dynamic:
                     args = fn.match(path_info)
                     if args is not None:
@@ -915,5 +896,3 @@ class Tindo(object):
                 del ctx.request
                 del ctx.response
         return wsgi
-
-

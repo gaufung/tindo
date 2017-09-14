@@ -113,11 +113,7 @@ class TestMethods(unittest.TestCase):
 
 class TestBuildRegex(unittest.TestCase):
     def testBuild(self):
-        self.assertEqual(_build_regex('/path/to/:file'), '^\\/path\\/to\\/(?P<file>[^\\/]+)$')
-        self.assertEqual(_build_regex('/:user/:comments/list'),
-                         '^\\/(?P<user>[^\\/]+)\\/(?P<comments>[^\\/]+)\\/list$')
-        self.assertEqual(_build_regex(':id-:pid/:w'),
-                         '^(?P<id>[^\\/]+)\\-(?P<pid>[^\\/]+)\\/(?P<w>[^\\/]+)$')
+        self.assertEqual(_build_regex('/path/to/<file>'), '^\\/path\\/to\\/(?P<file>[^\\/]+)$')
 
 
 class TestRequest(unittest.TestCase):

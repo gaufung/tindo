@@ -355,14 +355,38 @@ def _build_regex(path):
     :return: regex pattern
     """
     re_list = ['^']
-    m = _re_route.search(path)
-    if m:
-        for i in range(0, m.start()):
+    # for i in range(len(path)):
+    #     sub_path = path[i:]
+    #     # m = _re_route.match(sub_path)
+    #     # if m:
+    #     #     re_list.append(r'(?P<%s>[^\/]+)' % m.group(1))
+    #     #     i = i + m.end()
+    #     # else:
+    #     #     re_list.append(_re_char(path[i]))
+    i = 0
+    while i < len(path):
+        sub_path = path[i:]
+        m = _re_route.match(sub_path)
+        if m:
+            re_list.append(r'(?P<%s>[^\/]+)' % m.group(1))
+            i = i + m.end()
+        else:
             re_list.append(_re_char(path[i]))
-        re_list.append(r'(?P<%s>[^\/]+)' % m.group(1))
-    else:
-        for ch in path:
-            re_list.append(_re_char(ch))
+            i = i+1
+    # m = _re_route.search(path)
+    # if m:
+    #     for i in range(0, m.start()):
+    #         re_list.append(_re_char(path[i]))
+    #     re_list.append(r'(?P<%s>[^\/]+)' % m.group(1))
+    # m = _re_route.finditer(path)
+    # if m:
+    #     for i in range(len(path)):
+    #         sub_path=path[i:]
+    #
+    #
+    # else:
+    #     for ch in path:
+    #         re_list.append(_re_char(ch))
     re_list.append('$')
     return ''.join(re_list)
 

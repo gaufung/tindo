@@ -114,6 +114,8 @@ class TestMethods(unittest.TestCase):
 class TestBuildRegex(unittest.TestCase):
     def testBuild(self):
         self.assertEqual(_build_regex('/path/to/<file>'), '^\\/path\\/to\\/(?P<file>[^\\/]+)$')
+        self.assertEqual(_build_regex('/path/to/<name>/<comment>'),
+                                      '^\\/path\\/to\\/(?P<name>[^\\/]+)\\/(?P<comment>[^\\/]+)$')
 
 
 class TestRequest(unittest.TestCase):

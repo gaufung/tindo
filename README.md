@@ -27,6 +27,9 @@ The example folder contains the minimum demo using `tindo`.
        - index.html
        - name.html
        - register.html
+       - comment.html
+       - register.html
+       - registered.html
     - app.py
     - urls.py
 ```
@@ -70,6 +73,11 @@ contains `posted` values in `wsgi.input` dictionary.
 @get('/user/<username>')
 def user(name):
     return dict(name=name)
+    
+@view('comment.html')
+@get('/user/<name>/<group>')
+def comment(name, group):
+    return dict(name=name, group=group)
 ```
 
 Referring `flask` route, url can contain a query variable. If 
@@ -89,7 +97,6 @@ app.add_module(urls)
 if __name__ == '__main__':
     app.run()
 ```
-
 
 # 3 RoadMaps
 

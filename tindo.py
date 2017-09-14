@@ -228,39 +228,39 @@ class RedirectError(HttpError):
 
 
 def badrequest():
-    return HttpError(400)
+    raise HttpError(400)
 
 
 def unauthorized():
-    return HttpError(401)
+    raise HttpError(401)
 
 
 def forbidden():
-    return HttpError(403)
+    raise HttpError(403)
 
 
 def notfound():
-    return HttpError(404)
+    raise HttpError(404)
 
 
 def conflict():
-    return HttpError(409)
+    raise HttpError(409)
 
 
 def internalerror():
-    return HttpError(500)
+    raise HttpError(500)
 
 
 def redirect(location):
-    return RedirectError(301, location)
+    raise RedirectError(301, location)
 
 
 def found(location):
-    return RedirectError(302, location)
+    raise RedirectError(302, location)
 
 
 def seeother(location):
-    return RedirectError(303, location)
+    raise RedirectError(303, location)
 
 
 def _to_str(s):
@@ -332,7 +332,20 @@ def post(path):
     return _decorator
 
 
-_re_route = re.compile(r'(\:[a-zA-Z_]\w*)')
+_re_route = re.compile(r'<([a-zA-Z_]\w*)>')
+
+
+def _re_char(ch):
+    s = ''
+    if '0' <= ch <= '9':
+        s = s + ch
+    elif 'a' <= ch <= 'z':
+        s = s + ch
+    elif '0' <= ch <= '9':
+        s = s + ch
+    else:
+        s = s + '\\' + ch
+    return s
 
 
 def _build_regex(path):
@@ -342,26 +355,14 @@ def _build_regex(path):
     :return: regex pattern
     """
     re_list = ['^']
-    var_list = []
-    is_var = False
-    for v in _re_route.split(path):
-        if is_var:
-            var_name = v[1:]
-            var_list.append(var_name)
-            re_list.append(r'(?P<%s>[^\/]+)' % var_name)
-        else:
-            s = ''
-            for ch in v:
-                if '0' <= ch <= '9':
-                    s = s + ch
-                elif 'A' <= ch <= 'Z':
-                    s = s + ch
-                elif 'a' <= ch <= 'z':
-                    s = s + ch
-                else:
-                    s = s + '\\' + ch
-            re_list.append(s)
-        is_var = not is_var
+    m = _re_route.search(path)
+    if m:
+        for i in range(0, m.start()):
+            re_list.append(_re_char(path[i]))
+        re_list.append(r'(?P<%s>[^\/]+)' % m.group(1))
+    else:
+        for ch in path:
+            re_list.append(_re_char(ch))
     re_list.append('$')
     return ''.join(re_list)
 
@@ -749,18 +750,6 @@ class Jinja2TemplateEngine(TemplateEngine):
         return self._env.get_template(path).render(**model).encode('utf-8')
 
 
-def _default_error_handle(e, start_response, is_debug=True):
-    if isinstance(e, HttpError):
-        logging.info('HttpError: %s' % e.status)
-        headers = e.headers[:]
-        headers.append(('Content-Type', 'text/html'))
-        start_response(e.status, headers)
-        return ['<html><body><h1>%s</h1></body></html>' % e.status]
-    logging.exception('Exception: ')
-    start_response('500 Internal Server Error', [('Content-Type', 'text/html'), _HEADER_X_POWERED_BY])
-    return ['<html><body><h1>500 Internal Server Error</h1><h3>%s</h3></body></html>' % str(e)]
-
-
 def view(path):
     """
     A view decorator that render a view by dict.
@@ -779,47 +768,6 @@ def view(path):
     return _decorator
 
 
-_RE_INTERCEPTROR_STARTS_WITH = re.compile(r'^([^\*\?]+)\*?$')
-
-
-_RE_INTERCEPTROR_ENDS_WITH = re.compile(r'^\*([^\*\?]+)$')
-
-
-def _build_pattern_fn(pattern):
-    m = _RE_INTERCEPTROR_STARTS_WITH.match(pattern)
-    if m:
-        return lambda p: p.startswith(m.group(1))
-    m = _RE_INTERCEPTROR_ENDS_WITH.match(pattern)
-    if m:
-        return lambda p: p .endswith(pattern)
-    raise ValueError('Invalid pattern definition in interceptor ')
-
-
-def interceptor(pattern='/'):
-    def _decorator(func):
-        func.__interceptor__ = _build_pattern_fn(pattern)
-        return func
-    return _decorator
-
-
-def _build_interceptor_fn(func, next):
-    def _wrapper():
-        if func.__interceptor__(ctx.request.path_info):
-            return func(next)
-        else:
-            return next()
-    return _wrapper
-
-
-def _build_interceptor_chain(last_fn, *interceptors):
-    L = list(interceptors)
-    L.reverse()
-    fn = last_fn
-    for f in L:
-        fn = _build_interceptor_fn(f, fn)
-    return fn
-
-
 def _load_module(module_name):
     last_dot = module_name.rfind('.')
     if last_dot == (-1):
@@ -830,7 +778,7 @@ def _load_module(module_name):
     return getattr(m, import_module)
 
 
-class WSGIApplication(object):
+class Tindo(object):
     def __init__(self, document_root=None, **kw):
         self._running = False
         self._document_root = document_root
@@ -921,16 +869,14 @@ class WSGIApplication(object):
                     if args is not None:
                         return fn(*args)
                 raise notfound()
-            raise badrequest()
-
-        fn_exec = _build_interceptor_chain(fn_route, *self._interceptors)
+            badrequest()
 
         def wsgi(environ, start_response):
             ctx.application = _application
             ctx.request = Request(environ)
             response = ctx.response = Response()
             try:
-                r = fn_exec()
+                r = fn_route()
                 if isinstance(r, Template):
                     r = self._template_engine(r.template_name, r.model)
                 if isinstance(r, unicode):

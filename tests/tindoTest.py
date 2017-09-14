@@ -12,7 +12,7 @@ from tindo import get, post
 from tindo import _build_regex, Request
 from StringIO import StringIO
 from tindo import Response
-from tindo import _build_interceptor_chain, interceptor, ctx
+from tindo import ctx
 from tindo import _load_module
 
 
@@ -58,25 +58,25 @@ class TestHttpError(unittest.TestCase):
 
     def testRaiseError(self):
         with self.assertRaises(HttpError):
-            raise badrequest()
+            badrequest()
         self.assertEqual(str(sys.exc_value), '400 Bad Request')
         with self.assertRaises(HttpError):
-            raise unauthorized()
+            unauthorized()
         self.assertEqual(str(sys.exc_value), '401 Unauthorized')
         with self.assertRaises(HttpError):
-            raise forbidden()
+            forbidden()
         self.assertEqual(str(sys.exc_value), '403 Forbidden')
         with self.assertRaises(HttpError):
-            raise internalerror()
+            internalerror()
         self.assertEqual(str(sys.exc_value), '500 Internal Server Error')
         with self.assertRaises(HttpError):
-            raise redirect('http://www.itranswarp.com/')
+            redirect('http://www.itranswarp.com/')
         self.assertEqual(str(sys.exc_value), '301 Moved Permanently, http://www.itranswarp.com/')
         with self.assertRaises(HttpError):
-            raise found('http://www.itranswarp.com/')
+            found('http://www.itranswarp.com/')
         self.assertEqual(str(sys.exc_value), '302 Found, http://www.itranswarp.com/')
         with self.assertRaises(HttpError):
-            raise seeother('http://www.itranswarp.com/')
+            seeother('http://www.itranswarp.com/')
         self.assertEqual(str(sys.exc_value), '303 See Other, http://www.itranswarp.com/')
 
 
@@ -113,11 +113,7 @@ class TestMethods(unittest.TestCase):
 
 class TestBuildRegex(unittest.TestCase):
     def testBuild(self):
-        self.assertEqual(_build_regex('/path/to/:file'), '^\\/path\\/to\\/(?P<file>[^\\/]+)$')
-        self.assertEqual(_build_regex('/:user/:comments/list'),
-                         '^\\/(?P<user>[^\\/]+)\\/(?P<comments>[^\\/]+)\\/list$')
-        self.assertEqual(_build_regex(':id-:pid/:w'),
-                         '^(?P<id>[^\\/]+)\\-(?P<pid>[^\\/]+)\\/(?P<w>[^\\/]+)$')
+        self.assertEqual(_build_regex('/path/to/<file>'), '^\\/path\\/to\\/(?P<file>[^\\/]+)$')
 
 
 class TestRequest(unittest.TestCase):
@@ -237,42 +233,6 @@ class TestResponse(unittest.TestCase):
             r.status = 1000
         r.status = '500 ERROR'
         self.assertEqual(r.status, '500 ERROR')
-
-
-def target():
-    print('target')
-    return 123
-
-@interceptor('/')
-def f1(next):
-    print('before f1')
-    return  next()
-
-@interceptor('/test/')
-def f2(next):
-    print('Before f2')
-    try:
-        return next()
-    finally:
-        print('After f2')
-
-@interceptor('/')
-def f3(next):
-    print('Before f3')
-    try:
-        return next()
-    finally:
-        print('After f3')
-
-
-class TestInterceptorChain(unittest.TestCase):
-    def testChian(self):
-        chain = _build_interceptor_chain(target, f1, f2, f3)
-        ctx.request = Dict(path_info='/test/abc')
-        chain()
-        print('-------')
-        ctx.request = Dict(path_info='/api/')
-        chain()
 
 
 class TestLoadModule(unittest.TestCase):

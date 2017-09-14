@@ -778,7 +778,7 @@ def _load_module(module_name):
     return getattr(m, import_module)
 
 
-class WSGIApplication(object):
+class Tindo(object):
     def __init__(self, document_root=None, **kw):
         self._running = False
         self._document_root = document_root

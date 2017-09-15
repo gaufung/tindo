@@ -30,6 +30,7 @@ The example folder contains the minimum demo using `tindo`.
        - comment.html
        - register.html
        - registered.html
+       - session.html
     - app.py
     - urls.py
 ```
@@ -84,6 +85,20 @@ Referring `flask` route, url can contain a query variable. If
 `get` decorator with `<variable>`, the route will convert the 
 url's last component as parameter and invoke the function.
 
+### 2.1.4 Session
+Session is used to keep identification of individual client. 
+[This article](http://eli.thegreenplace.net/2011/06/24/django-sessions-part-i-cookies/)
+points out how session works. In `tindo`, the application contain a global 
+dictionary that keeps every session-id. Each session is a dictionary instance in memory.
+
+```python
+@view('session.html')
+@get('/session')
+def session():
+    sess = ctx.response.session
+    return dict(name=sess.name)
+``` 
+
 ## 2.2 app.py
 
 This module is main part of web application. Just import `tindo` and
@@ -101,5 +116,5 @@ if __name__ == '__main__':
 # 3 RoadMaps
 
 - [ ] Export it to Python 3.x
-- [ ] Add session feature
+- [x] Add session feature
 - [ ] Refactor

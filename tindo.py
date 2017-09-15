@@ -20,7 +20,8 @@ import types
 import StringIO
 import traceback
 import sys
-
+from threading import Lock
+from uuid import uuid1
 
 class Dict(dict):
     """extend dict but support attribute getter and setter
@@ -355,14 +356,6 @@ def _build_regex(path):
     :return: regex pattern
     """
     re_list = ['^']
-    # for i in range(len(path)):
-    #     sub_path = path[i:]
-    #     # m = _re_route.match(sub_path)
-    #     # if m:
-    #     #     re_list.append(r'(?P<%s>[^\/]+)' % m.group(1))
-    #     #     i = i + m.end()
-    #     # else:
-    #     #     re_list.append(_re_char(path[i]))
     i = 0
     while i < len(path):
         sub_path = path[i:]
@@ -373,22 +366,11 @@ def _build_regex(path):
         else:
             re_list.append(_re_char(path[i]))
             i = i+1
-    # m = _re_route.search(path)
-    # if m:
-    #     for i in range(0, m.start()):
-    #         re_list.append(_re_char(path[i]))
-    #     re_list.append(r'(?P<%s>[^\/]+)' % m.group(1))
-    # m = _re_route.finditer(path)
-    # if m:
-    #     for i in range(len(path)):
-    #         sub_path=path[i:]
-    #
-    #
-    # else:
-    #     for ch in path:
-    #         re_list.append(_re_char(ch))
     re_list.append('$')
     return ''.join(re_list)
+
+
+
 
 
 class Route(object):
@@ -457,6 +439,18 @@ class MultipartFile(object):
     def __init__(self, storage):
         self.filename = _to_unicode(storage.filename)
         self.file = storage.file
+
+
+_SESSIONS_WAREHOUSE = {}
+
+_session_lock = Lock()
+
+
+def _get_session(session_id):
+    with _session_lock:
+        if session_id not in _SESSIONS_WAREHOUSE:
+            _SESSIONS_WAREHOUSE[session_id] = Dict()
+        return _SESSIONS_WAREHOUSE[session_id]
 
 
 class Request(object):
@@ -625,6 +619,12 @@ class Request(object):
         """
         return self._get_cookies().get(name, default)
 
+    @property
+    def session(self):
+        sessionid = self.cookie('sessionid')
+        if sessionid is not None:
+            return _get_session(sessionid)
+
 
 UTC_0 = UTC('+00:00')
 
@@ -743,6 +743,16 @@ class Response(object):
                 raise ValueError('Bad response code: %s' % value)
         else:
             raise TypeError('Bad type of response code.')
+
+    @property
+    def session(self):
+        if ctx.request.session is None:
+            sessionid = str(uuid1())
+            self.set_cookie('sessionid', sessionid)
+        else:
+            sessionid = ctx.request.cookie('sessionid')
+            self.set_cookie('sessionid', sessionid)
+        return _get_session(sessionid)
 
 
 class Template(object):

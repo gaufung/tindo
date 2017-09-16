@@ -4,16 +4,20 @@ reload(sys)
 import unittest
 import sys
 import datetime
-from tindo import Dict, UTC, _RE_RESPONSE_STATUS, _RESPONSE_STATUSES
-from tindo import HttpError, RedirectError, badrequest,unauthorized, forbidden
-from tindo import internalerror, redirect, found, seeother
-from tindo import _to_str, _to_unicode, _quote, _unquote
-from tindo import get, post
-from tindo import _build_regex, Request
+# from tindo.tindo import Dict, UTC, _RE_RESPONSE_STATUS, _RESPONSE_STATUSES
+# from tindo.tindo import HttpError, RedirectError, badrequest,unauthorized, forbidden
+# from tindo.tindo import internalerror, redirect, found, seeother
+# from tindo.tindo import _to_str, _to_unicode, _quote, _unquote
+from tindo.utils import Dict, UTC
+from tindo.http import HttpError, RedirectError, badrequest, unauthorized, forbidden, RE_RESPONSE_STATUS
+from tindo.http import internalerror, redirect, found, seeother
+from tindo.http import to_str, to_unicode, quote, unquote, RESPONSE_STATUSES
+from tindo.tindo import get, post
+from tindo.tindo import _build_regex, Request
 from StringIO import StringIO
-from tindo import Response
-from tindo import ctx
-from tindo import _load_module
+from tindo.tindo import Response
+from tindo.tindo import ctx
+from tindo.tindo import _load_module
 
 
 class TestDict(unittest.TestCase):
@@ -42,8 +46,8 @@ class TestUTC(unittest.TestCase):
 
 class TestReponseStatus(unittest.TestCase):
     def testMath(self):
-        for k, _ in _RESPONSE_STATUSES.items():
-            self.assertTrue(_RE_RESPONSE_STATUS.match(str(k)+' '+_))
+        for k, _ in RESPONSE_STATUSES.items():
+            self.assertTrue(RE_RESPONSE_STATUS.match(str(k)+' '+_))
 
 
 class TestHttpError(unittest.TestCase):
@@ -82,15 +86,15 @@ class TestHttpError(unittest.TestCase):
 
 class TestEncode(unittest.TestCase):
     def testStrUnicode(self):
-        self.assertEqual(_to_str('s123'), 's123')
-        self.assertEqual(_to_str(u'\u4e2d\u6587'), '\xe4\xb8\xad\xe6\x96\x87')
-        self.assertEqual(_to_str(-123), '-123')
-        self.assertEqual(_to_unicode('\xe4\xb8\xad\xe6\x96\x87'), u'\u4e2d\u6587')
+        self.assertEqual(to_str('s123'), 's123')
+        self.assertEqual(to_str(u'\u4e2d\u6587'), '\xe4\xb8\xad\xe6\x96\x87')
+        self.assertEqual(to_str(-123), '-123')
+        self.assertEqual(to_unicode('\xe4\xb8\xad\xe6\x96\x87'), u'\u4e2d\u6587')
 
     def testQuote(self):
-        self.assertEqual(_quote('http://example/test?a=1+'), 'http%3A//example/test%3Fa%3D1%2B')
-        self.assertEqual(_quote(u'hello world!'), 'hello%20world%21')
-        self.assertEqual(_unquote('http%3A//example/test%3Fa%3D1+'), u'http://example/test?a=1+')
+        self.assertEqual(quote('http://example/test?a=1+'), 'http%3A//example/test%3Fa%3D1%2B')
+        self.assertEqual(quote(u'hello world!'), 'hello%20world%21')
+        self.assertEqual(unquote('http%3A//example/test%3Fa%3D1+'), u'http://example/test?a=1+')
 
 
 @get('/test/:id')

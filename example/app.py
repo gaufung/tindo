@@ -3,7 +3,7 @@ import sys
 sys.path.insert(0, '../')
 reload(sys)
 import os
-from tindo import Tindo
+from tindo.tindo import Tindo
 
 app = Tindo(os.path.dirname(os.path.abspath(__file__)))
 

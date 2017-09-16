@@ -117,4 +117,4 @@ if __name__ == '__main__':
 
 - [ ] Export it to Python 3.x
 - [x] Add session feature
-- [ ] Refactor
+- [x] Refactor

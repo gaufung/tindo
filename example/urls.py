@@ -2,12 +2,11 @@
 import sys
 sys.path.insert(0, '../')
 reload(sys)
-from tindo.tindo import get, view, post, ctx
-
+from tindo.tindo import get, view, post, ctx, route
 
 
 @view('index.html')
-@get('/')
+@route('/')
 def index():
     session = ctx.response.session
     session.name = 'gaofeng'
@@ -15,33 +14,31 @@ def index():
 
 
 @view('register.html')
-@get('/register')
+@route('/register', methods=['GET', 'POST'])
 def register():
-
-    return dict()
-
-
-@view('registered.html')
-@post('/registered')
-def registered():
-    i = ctx.request.input(firstname='', lastname='')
-    return dict(firstname=i.get('firstname', ''), lastname=i.get('lastname', ''))
+    i = ctx.request.input(firstname=None, lastname=None)
+    firstname = i.get('firstname')
+    lastname = i.get('lastname')
+    if firstname is None and lastname is None:
+        return dict(register=True)
+    else:
+        return dict(firstname=firstname, lastname=lastname)
 
 
 @view('name.html')
-@get('/user/<username>')
+@route('/user/<username>')
 def user(name):
     return dict(name=name)
 
 
 @view('comment.html')
-@get('/user/<name>/<group>')
+@route('/user/<name>/<group>')
 def comment(name, group):
     return dict(name=name, group=group)
 
 
 @view('session.html')
-@get('/session')
+@route('/session')
 def session():
     sess = ctx.response.session
     return dict(name=sess.name)

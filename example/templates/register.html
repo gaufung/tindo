@@ -1,5 +1,11 @@
-<form method="post" action="/registered">
-    First Name: <input type="text" name="firstname"><br/>
-    Second Name: <input type="text" name="lastname"><br/>
-    <input type="submit" value="submit">
-</form>
+<p>
+    {% if register %}
+        <form method="post">
+        First Name: <input type="text" name="firstname"><br/>
+        Second Name: <input type="text" name="lastname"><br/>
+        <input type="submit" value="submit">
+        </form>
+    {% else %}
+        <p>Hello, {{ firstname }} {{ lastname }}</p>
+    {% endif %}
+</p>

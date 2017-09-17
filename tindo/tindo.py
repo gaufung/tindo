@@ -11,13 +11,15 @@ import os
 import mimetypes
 import cgi
 import logging
-import functools
+import warnings
 import types
 import StringIO
 import traceback
 import sys
 from threading import Lock, local
 import re
+import datetime
+import functools
 from uuid import uuid1
 from http import RESPONSE_STATUSES, RESPONSE_HEADER_DICT, HEADER_X_POWERED_BY, RE_RESPONSE_STATUS
 from http import RedirectError, badrequest, notfound, HttpError
@@ -28,15 +30,34 @@ from utils import Dict, UTC
 ctx = local()
 
 
+def route(path, methods=None):
+    """
+    route decorator
+    :param path: the url path
+    :param methods: HTTP's Methods, defaults is 'GET'
+    :return:
+    """
+    if methods is None:
+        methods = ['GET']
+
+    def _decorator(func):
+        func.__web_route__ = path
+        func.__web_method__ = methods
+        return func
+    return _decorator
+
+
 def get(path):
     """
      A @get decorator
     :param path: the path
     :return:
     """
+    warnings.warn('The method is deprecated, use route instead', stacklevel=2)
+
     def _decorator(func):
         func.__web_route__ = path
-        func.__web_method__ = 'GET'
+        func.__web_method__ = ['GET']
         return func
     return _decorator
 
@@ -47,9 +68,11 @@ def post(path):
     :param path: the path
     :return:
     """
+    warnings.warn('The method is deprecated, use route instead', stacklevel=2)
+
     def _decorator(func):
         func.__web_route__ = path
-        func.__web_method__ = 'POST'
+        func.__web_method__ = ['POST']
         return func
     return _decorator
 
@@ -128,7 +151,7 @@ def _static_file_generator(file_path):
 
 class StaticFileRoute(object):
     def __int__(self):
-        self.method = 'GET'
+        self.method = ['GET']
         self.is_static = True
         self.route = re.compile('^/static/(.+)$')
 
@@ -563,9 +586,11 @@ class Tindo(object):
     def add_url(self, func):
         self._check_not_running()
         route = Route(func)
-        if route.method == 'GET':
+        # if route.method == 'GET':
+        if 'GET' in route.method:
             self._get_dynamic.append(route)
-        if route.method == 'POST':
+        # if route.method == 'POST':
+        if 'POST' in route.method:
             self._post_dynamic.append(route)
         logging.info('Add route: %s' % str(route))
 

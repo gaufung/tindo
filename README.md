@@ -45,7 +45,7 @@ just like `Django`.
 ```python
 
 @view('index.html')
-@get('/')
+@route('/')
 def index():
     return dict()
 
@@ -57,11 +57,16 @@ If no variables in the template, just return a `dict`.
 ### 2.1.2 POST Method
 
 ```python
-@view('registered.html')
-@post('/registered')
-def registered():
-    i = ctx.request.input(firstname='', lastname='')
-    return dict(firstname=i.get('firstname', ''), lastname=i.get('lastname', ''))
+@view('register.html')
+@route('/register', methods=['GET', 'POST'])
+def register():
+    i = ctx.request.input(firstname=None, lastname=None)
+    firstname = i.get('firstname')
+    lastname = i.get('lastname')
+    if firstname is None and lastname is None:
+        return dict(register=True)
+    else:
+        return dict(firstname=firstname, lastname=lastname)
 ```
 The thread-safe `ctx` variable includes current request, which
 contains `posted` values in `wsgi.input` dictionary.
@@ -118,3 +123,7 @@ if __name__ == '__main__':
 - [ ] Export it to Python 3.x
 - [x] Add session feature
 - [x] Refactor
+
+# 4 Update Notes
+
++ update `route` decorator and deprecate `get` and `post` decorators. 17. Sep. 2017

@@ -4,10 +4,6 @@ reload(sys)
 import unittest
 import sys
 import datetime
-# from tindo.tindo import Dict, UTC, _RE_RESPONSE_STATUS, _RESPONSE_STATUSES
-# from tindo.tindo import HttpError, RedirectError, badrequest,unauthorized, forbidden
-# from tindo.tindo import internalerror, redirect, found, seeother
-# from tindo.tindo import _to_str, _to_unicode, _quote, _unquote
 from tindo.utils import Dict, UTC
 from tindo.http import HttpError, RedirectError, badrequest, unauthorized, forbidden, RE_RESPONSE_STATUS
 from tindo.http import internalerror, redirect, found, seeother
@@ -18,6 +14,7 @@ from StringIO import StringIO
 from tindo.tindo import Response
 from tindo.tindo import ctx
 from tindo.tindo import _load_module
+from tindo.tindo import route
 
 
 class TestDict(unittest.TestCase):
@@ -110,9 +107,9 @@ def testpost():
 class TestMethods(unittest.TestCase):
     def testMethod(self):
         self.assertEqual(testget.__web_route__, '/test/:id')
-        self.assertEqual(testget.__web_method__, 'GET')
+        self.assertEqual(testget.__web_method__, ['GET'])
         self.assertEqual(testpost.__web_route__, '/post/:id')
-        self.assertEqual(testpost.__web_method__, 'POST')
+        self.assertEqual(testpost.__web_method__, ['POST'])
 
 
 class TestBuildRegex(unittest.TestCase):
@@ -249,6 +246,24 @@ class TestLoadModule(unittest.TestCase):
         self.assertEqual(m.__name__, 'xml.sax')
         m = _load_module('xml.sax.handler')
         self.assertEqual(m.__name__, 'xml.sax.handler')
+
+
+@route('/')
+def index():
+    pass
+
+
+@route('/home', methods=['GET', 'POST'])
+def home():
+    pass
+
+
+class TestRoute(unittest.TestCase):
+    def testRouteDecorator(self):
+        self.assertEqual(index.__web_route__, '/')
+        self.assertEqual(index.__web_method__, ['GET'])
+        self.assertEqual(home.__web_route__, '/home')
+        self.assertEqual(home.__web_method__, ['GET', 'POST'])
 
 
 if __name__ == '__main__':

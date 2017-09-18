@@ -5,8 +5,8 @@ import unittest
 import sys
 import datetime
 from tindo.utils import Dict, UTC
-from tindo.http import HttpError, RedirectError, badrequest, unauthorized, forbidden, RE_RESPONSE_STATUS
-from tindo.http import internalerror, redirect, found, seeother
+from tindo.http import HttpError, RedirectError, bad_request, unauthorized, forbidden, RE_RESPONSE_STATUS
+from tindo.http import internal_error, redirect, found, see_other
 from tindo.http import to_str, to_unicode, quote, unquote, RESPONSE_STATUSES
 from tindo.tindo import get, post
 from tindo.tindo import _build_regex, Request
@@ -59,7 +59,7 @@ class TestHttpError(unittest.TestCase):
 
     def testRaiseError(self):
         with self.assertRaises(HttpError):
-            badrequest()
+            bad_request()
         self.assertEqual(str(sys.exc_value), '400 Bad Request')
         with self.assertRaises(HttpError):
             unauthorized()
@@ -68,7 +68,7 @@ class TestHttpError(unittest.TestCase):
             forbidden()
         self.assertEqual(str(sys.exc_value), '403 Forbidden')
         with self.assertRaises(HttpError):
-            internalerror()
+            internal_error()
         self.assertEqual(str(sys.exc_value), '500 Internal Server Error')
         with self.assertRaises(HttpError):
             redirect('http://www.itranswarp.com/')
@@ -77,7 +77,7 @@ class TestHttpError(unittest.TestCase):
             found('http://www.itranswarp.com/')
         self.assertEqual(str(sys.exc_value), '302 Found, http://www.itranswarp.com/')
         with self.assertRaises(HttpError):
-            seeother('http://www.itranswarp.com/')
+            see_other('http://www.itranswarp.com/')
         self.assertEqual(str(sys.exc_value), '303 See Other, http://www.itranswarp.com/')
 
 
@@ -189,12 +189,12 @@ class TestRequest(unittest.TestCase):
 class TestResponse(unittest.TestCase):
     def testHeaders(self):
         r = Response()
-        self.assertEqual(r.headers, [('Content-Type', 'text/html; charset=utf-8'), ('X-Powered-By', 'transwarp/1.0')])
+        self.assertEqual(r.headers, [('Content-Type', 'text/html; charset=utf-8'), ('X-Powered-By', 'tindo/1.0')])
         r.set_cookie('s1', 'ok', 3600)
         self.assertEqual(r.headers,
                          [('Content-Type', 'text/html; charset=utf-8'),
                           ('Set-Cookie', 's1=ok; Max-Age=3600; Path=/; HttpOnly'),
-                          ('X-Powered-By', 'transwarp/1.0')])
+                          ('X-Powered-By', 'tindo/1.0')])
         self.assertEqual(r.header('content-type'), 'text/html; charset=utf-8')
         self.assertEqual(r.header('CONTENT-type'), 'text/html; charset=utf-8')
         r.unset_header('content-type')

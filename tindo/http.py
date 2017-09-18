@@ -121,7 +121,7 @@ RESPONSE_HEADER_DICT = dict(zip(
                 RESPONSE_HEADERS))
 
 
-HEADER_X_POWERED_BY = ('X-Powered-By', 'transwarp/1.0')
+HEADER_X_POWERED_BY = ('X-Powered-By', 'tindo/1.0')
 
 
 class HttpError(Exception):
@@ -154,7 +154,7 @@ class RedirectError(HttpError):
     __repr__ = __str__
 
 
-def badrequest():
+def bad_request():
     raise HttpError(400)
 
 
@@ -166,7 +166,7 @@ def forbidden():
     raise HttpError(403)
 
 
-def notfound():
+def not_found():
     raise HttpError(404)
 
 
@@ -174,7 +174,7 @@ def conflict():
     raise HttpError(409)
 
 
-def internalerror():
+def internal_error():
     raise HttpError(500)
 
 
@@ -186,7 +186,7 @@ def found(location):
     raise RedirectError(302, location)
 
 
-def seeother(location):
+def see_other(location):
     raise RedirectError(303, location)
 
 

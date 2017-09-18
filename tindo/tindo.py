@@ -10,7 +10,6 @@
 import os
 import mimetypes
 import cgi
-import logging
 import warnings
 import types
 import StringIO
@@ -20,9 +19,10 @@ from threading import Lock, local
 import re
 import datetime
 import functools
+import logging
 from uuid import uuid1
 from http import RESPONSE_STATUSES, RESPONSE_HEADER_DICT, HEADER_X_POWERED_BY, RE_RESPONSE_STATUS
-from http import RedirectError, badrequest, notfound, HttpError
+from http import RedirectError, bad_request, not_found, HttpError
 from http import to_str, to_unicode, quote, unquote
 from utils import Dict, UTC
 
@@ -95,7 +95,8 @@ def _re_char(ch):
 
 def _build_regex(path):
     """
-    build path regex
+    build path regex pattern
+    '/users/<username>' => '^/user/(?P<username>[^\/]+)$'
     :param path: the path
     :return: regex pattern
     """
@@ -121,7 +122,7 @@ class Route(object):
 
     def __init__(self, func):
         self.path = func.__web_route__
-        self.method = func.__web_method__
+        self.methods = func.__web_method__
         self.route = re.compile(_build_regex(self.path))
         self.func = func
 
@@ -135,7 +136,7 @@ class Route(object):
         return self.func(*args)
 
     def __str__(self):
-        return '(%s, path=%s)' % (self.method, self.path)
+        return '(%s, path=%s)' % (self.methods, self.path)
 
     __repr__ = __str__
 
@@ -164,7 +165,7 @@ class StaticFileRoute(object):
     def __call__(self, *args, **kwargs):
         file_path = os.path.join(ctx.application.document_root, args[0])
         if not os.path.isfile(file_path):
-            raise notfound()
+            raise not_found()
         file_extension = os.path.splitext(file_path)[1]
         ctx.response.content_type = mimetypes.types_map.get(file_extension.lower(), 'application/octet-stream')
         return _static_file_generator(file_path)
@@ -188,6 +189,12 @@ _session_lock = Lock()
 
 
 def _get_session(session_id):
+    """
+    get session from the runtime memory, which store as dictionary.
+    Using lock to make thread-safe.
+    :param session_id: the session id assigned to each request.
+    :return: a Dict
+    """
     with _session_lock:
         if session_id not in _SESSIONS_WAREHOUSE:
             _SESSIONS_WAREHOUSE[session_id] = Dict()
@@ -338,6 +345,10 @@ class Request(object):
         return self._get_headers().get(header.upper(), default)
 
     def _get_cookies(self):
+        """
+        HTTP_COOKIE: theme=light; sessionToken=abc123; value=10
+        :return:
+        """
         if not hasattr(self, '_cookies'):
             cookies = {}
             cookie_str = self._environ.get('HTTP_COOKIE')
@@ -550,16 +561,17 @@ def _load_module(module_name):
 
 
 class Tindo(object):
-    def __init__(self, document_root, template_engine=None, **kw):
+    def __init__(self, document_root, template_engine=None, debug=True, **kw):
         self._running = False
         self._document_root = document_root
+        self._debug = debug
 
-        self._interceptors = []
         self._template_engine = Jinja2TemplateEngine(
             os.path.join(self._document_root, 'templates')) if template_engine is None else None
 
         self._get_dynamic = []
         self._post_dynamic = []
+        self._get_dynamic.append(StaticFileRoute())
 
     def _check_not_running(self):
         if self._running:
@@ -585,91 +597,92 @@ class Tindo(object):
 
     def add_url(self, func):
         self._check_not_running()
-        route = Route(func)
-        # if route.method == 'GET':
-        if 'GET' in route.method:
-            self._get_dynamic.append(route)
-        # if route.method == 'POST':
-        if 'POST' in route.method:
-            self._post_dynamic.append(route)
-        logging.info('Add route: %s' % str(route))
-
-    def add_interceptor(self, func):
-        self._check_not_running()
-        self._interceptors.append(func)
-        logging.info('Add interceptor %s' % str(func))
+        r = Route(func)
+        if 'GET' in r.methods:
+            self._get_dynamic.append(r)
+        if 'POST' in r.methods:
+            self._post_dynamic.append(r)
+        logging.info('Add route: %s' % str(r))
 
     def run(self, port=9000, host='127.0.0.1'):
         from wsgiref.simple_server import make_server
         logging.info('application (%s) will start at %s:%s' % (self._document_root, host, port))
-        server = make_server(host, port, self.get_wsgi_application(debug=True))
+        server = make_server(host, port, self)
         server.serve_forever()
 
-    def get_wsgi_application(self, debug=False):
-        self._check_not_running()
-        self._get_dynamic.append(StaticFileRoute())
-        self._running = True
+    def __call__(self, environ, start_response):
+        """
+        WSGI protocol, a callable instance
+        :param environ: wsgi environ
+        :param start_response: wsgi start_response
+        :return:
+        """
+        return self._wsgi_app(environ, start_response, self._debug)
 
+    def _dispatch_route(self):
+        """
+        make response of route
+        :return:
+        """
+        request_method = ctx.request.request_method
+        path_info = ctx.request.path_info
+        if request_method == 'GET':
+            for fn in self._get_dynamic:
+                args = fn.match(path_info)
+                if args is not None:
+                    return fn(*args)
+            raise not_found()
+        if request_method == 'POST':
+            for fn in self._post_dynamic:
+                args = fn.match(path_info)
+                if args is not None:
+                    return fn(*args)
+            raise not_found()
+        bad_request()
+
+    def _wsgi_app(self, environ, start_response, debug=True):
+        self._running = True
         _application = Dict(document_root=self._document_root)
 
-        def fn_route():
-            request_method = ctx.request.request_method
-            path_info = ctx.request.path_info
-            if request_method == 'GET':
-                for fn in self._get_dynamic:
-                    args = fn.match(path_info)
-                    if args is not None:
-                        return fn(*args)
-                raise notfound()
-            if request_method == 'POST':
-                for fn in self._post_dynamic:
-                    args = fn.match(path_info)
-                    if args is not None:
-                        return fn(*args)
-                raise notfound()
-            badrequest()
-
-        def wsgi(environ, start_response):
-            ctx.application = _application
-            ctx.request = Request(environ)
-            response = ctx.response = Response()
-            try:
-                r = fn_route()
-                if isinstance(r, Template):
-                    r = self._template_engine(r.template_name, r.model)
-                if isinstance(r, unicode):
-                    r = r.encode('utf-8')
-                if r is None:
-                    r = []
-                start_response(response.status, response.headers)
-                return r
-            except RedirectError, e:
-                response.set_header('location', e.location)
-                start_response(e.status, response.headers)
-                return []
-            except HttpError, e:
-                start_response(e.status, response.headers)
-                return ['<html><body><h1>', e.status, '</h1></body></html>']
-            except Exception, e:
-                logging.exception(e)
-                if not debug:
-                    start_response('500 Internal Server Error', [])
-                    return ['<html><body><h1>500 Internal Server Error</h1></body></html>']
-                exc_type, exc_value, exc_traceback = sys.exc_info()
-                fp = StringIO()
-                traceback.print_exception(exc_type, exc_value, exc_traceback, file=fp)
-                stacks = fp.getvalue()
-                fp.close()
+        ctx.application = _application
+        ctx.request = Request(environ)
+        response = ctx.response = Response()
+        try:
+            r = self._dispatch_route()
+            if isinstance(r, Template):
+                r = self._template_engine(r.template_name, r.model)
+            if isinstance(r, unicode):
+                r = r.encode('utf-8')
+            if r is None:
+                r = []
+            start_response(response.status, response.headers)
+            return r
+        except RedirectError, e:
+            response.set_header('location', e.location)
+            start_response(response.status, response.headers)
+            return []
+        except HttpError, e:
+            start_response(e.status, response.headers)
+            return ['<html><body><h1>', e.status, '</h1></body></html>']
+        except Exception, e:
+            logging.exception(e)
+            if not debug:
                 start_response('500 Internal Server Error', [])
-                return [
-                    r'''<html><body><h1>
-                    500 Internal Server Error</h1>
-                    <div style="font-family:Monaco, Menlo, Consolas, 'Courier New', monospace;">
-                    <pre>''',
-                    stacks.replace('<', '&lt;').replace('>', '&gt;'),
-                    '</pre></div></body></html>']
-            finally:
-                del ctx.application
-                del ctx.request
-                del ctx.response
-        return wsgi
+                return ['<html><body><h1>500 Internal Server Error</h1></body></html>']
+            exc_type, exc_value, exc_traceback = sys.exc_info()
+            fp = StringIO()
+            traceback.print_exception(exc_type, exc_value, exc_traceback, file=fp)
+            stacks = fp.getvalue()
+            fp.close()
+            start_response('500 Internal Server Error', [])
+            return [
+                r'''<html><body><h1>
+                500 Internal Server Error</h1>
+                <div style="font-family:Monaco, Menlo, Consolas, 'Courier New', monospace;">
+                <pre>''',
+                stacks.replace('<', '&lt;').replace('>', '&gt;'),
+                '</pre></div></body></html>']
+        finally:
+            del ctx.application
+            del ctx.request
+            del ctx.response

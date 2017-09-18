@@ -121,7 +121,7 @@ RESPONSE_HEADER_DICT = dict(zip(
                 RESPONSE_HEADERS))
 
 
-HEADER_X_POWERED_BY = ('X-Powered-By', 'transwarp/1.0')
+HEADER_X_POWERED_BY = ('X-Powered-By', 'tindo/1.0')
 
 
 class HttpError(Exception):

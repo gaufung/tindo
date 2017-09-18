@@ -20,6 +20,7 @@ from threading import Lock, local
 import re
 import datetime
 import functools
+import logging
 from uuid import uuid1
 from http import RESPONSE_STATUSES, RESPONSE_HEADER_DICT, HEADER_X_POWERED_BY, RE_RESPONSE_STATUS
 from http import RedirectError, badrequest, notfound, HttpError
@@ -95,7 +96,8 @@ def _re_char(ch):
 
 def _build_regex(path):
     """
-    build path regex
+    build path regex pattern
+    '/users/<username>' => '^/user/(?P<username>[^\/]+)$'
     :param path: the path
     :return: regex pattern
     """
@@ -121,7 +123,7 @@ class Route(object):
 
     def __init__(self, func):
         self.path = func.__web_route__
-        self.method = func.__web_method__
+        self.methods = func.__web_method__
         self.route = re.compile(_build_regex(self.path))
         self.func = func
 
@@ -135,7 +137,7 @@ class Route(object):
         return self.func(*args)
 
     def __str__(self):
-        return '(%s, path=%s)' % (self.method, self.path)
+        return '(%s, path=%s)' % (self.methods, self.path)
 
     __repr__ = __str__
 
@@ -188,6 +190,12 @@ _session_lock = Lock()
 
 
 def _get_session(session_id):
+    """
+    get session from the runtime memory, which store as dictionary.
+    Using lock to make thread-safe.
+    :param session_id: the session id assigned to each request.
+    :return: a Dict
+    """
     with _session_lock:
         if session_id not in _SESSIONS_WAREHOUSE:
             _SESSIONS_WAREHOUSE[session_id] = Dict()
@@ -338,6 +346,10 @@ class Request(object):
         return self._get_headers().get(header.upper(), default)
 
     def _get_cookies(self):
+        """
+        HTTP_COOKIE: theme=light; sessionToken=abc123; value=10
+        :return:
+        """
         if not hasattr(self, '_cookies'):
             cookies = {}
             cookie_str = self._environ.get('HTTP_COOKIE')
@@ -585,19 +597,12 @@ class Tindo(object):
 
     def add_url(self, func):
         self._check_not_running()
-        route = Route(func)
-        # if route.method == 'GET':
-        if 'GET' in route.method:
-            self._get_dynamic.append(route)
-        # if route.method == 'POST':
-        if 'POST' in route.method:
-            self._post_dynamic.append(route)
-        logging.info('Add route: %s' % str(route))
-
-    def add_interceptor(self, func):
-        self._check_not_running()
-        self._interceptors.append(func)
-        logging.info('Add interceptor %s' % str(func))
+        r = Route(func)
+        if 'GET' in r.methods:
+            self._get_dynamic.append(r)
+        if 'POST' in r.methods:
+            self._post_dynamic.append(r)
+        logging.info('Add route: %s' % str(r))
 
     def run(self, port=9000, host='127.0.0.1'):
         from wsgiref.simple_server import make_server

@@ -82,7 +82,7 @@ def user(name):
     return dict(name=name)
     
 @view('comment.html')
-@get('/user/<name>/<group>')
+@route('/user/<name>/<group>')
 def comment(name, group):
     return dict(name=name, group=group)
 ```
@@ -99,7 +99,7 @@ dictionary that keeps every session-id. Each session is a dictionary instance in
 
 ```python
 @view('session.html')
-@get('/session')
+@route('/session')
 def session():
     sess = ctx.response.session
     return dict(name=sess.name)
@@ -128,3 +128,4 @@ if __name__ == '__main__':
 # 4 Update Notes
 
 + update `route` decorator and deprecate `get` and `post` decorators. 17. Sep. 2017
++ re-organize `tindo.py` wsgi protocol using `__call__`.

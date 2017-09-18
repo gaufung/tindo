@@ -77,7 +77,7 @@ contains `posted` values in `wsgi.input` dictionary.
 
 ```python
 @view('name.html')
-@get('/user/<username>')
+@route('/user/<username>')
 def user(name):
     return dict(name=name)
     

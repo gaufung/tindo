@@ -15,7 +15,7 @@ import types
 import StringIO
 import traceback
 import sys
-from threading import Lock, local
+from threading import Lock
 import re
 import datetime
 import functools
@@ -25,9 +25,10 @@ from http import RESPONSE_STATUSES, RESPONSE_HEADER_DICT, HEADER_X_POWERED_BY, R
 from http import RedirectError, bad_request, not_found, HttpError
 from http import to_str, to_unicode, quote, unquote
 from utils import Dict, UTC
+from local import Local
 
 
-ctx = local()
+ctx = Local()
 
 
 def route(path, methods=None):
@@ -619,7 +620,7 @@ class Tindo(object):
         """
         return self._wsgi_app(environ, start_response, self._debug)
 
-    def _dispatch_route(self):
+    def _dispatch_request(self):
         """
         make response of route
         :return:
@@ -648,7 +649,7 @@ class Tindo(object):
         ctx.request = Request(environ)
         response = ctx.response = Response()
         try:
-            r = self._dispatch_route()
+            r = self._dispatch_request()
             if isinstance(r, Template):
                 r = self._template_engine(r.template_name, r.model)
             if isinstance(r, unicode):

@@ -1,0 +1,10 @@
+<h1>Guess Number</h1> <br>
+<form method="post">
+    Guess a Number (0-100):<input type="text" name="number"><br>
+    <input type="submit" value="submit">
+    {% if success %}
+    <p>You Win</p>
+    {% else %}
+    <p>{{ status }}You have {{ times }} times left.</p>
+    {% endif %}
+</form>

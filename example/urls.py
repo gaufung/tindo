@@ -1,10 +1,8 @@
 # -*- coding: utf-8 -*-
-import sys
-sys.path.insert(0, '../')
-reload(sys)
 import random
-from tindo.tindo import get, view, post, ctx, route
+from tindo.tindo import view, ctx, route
 from tindo.http import redirect
+
 
 @view('index.html')
 @route('/')

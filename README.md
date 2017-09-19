@@ -128,4 +128,5 @@ if __name__ == '__main__':
 # 4 Update Notes
 
 + update `route` decorator and deprecate `get` and `post` decorators. 17. Sep. 2017
-+ re-organize `tindo.py` wsgi protocol using `__call__`.
++ re-organize `tindo.py` wsgi protocol using `__call__`. 18. Sep. 2017
++ add `local` module which behave like `threading.local`. 19. Sep. 2017

@@ -1,17 +1,13 @@
 import unittest
 import datetime
 import sys
-from tindo.utils import Dict, UTC
-from tindo.http import HttpError, RedirectError, bad_request, unauthorized, forbidden, RE_RESPONSE_STATUS
-from tindo.http import internal_error, redirect, found, see_other
-from tindo.http import to_str, to_unicode, quote, unquote, RESPONSE_STATUSES
-from tindo.tindo import get, post
-from tindo.tindo import _build_regex, Request
+from tindo import Dict, UTC
+from tindo import HttpError, RedirectError, bad_request, unauthorized, forbidden, RE_RESPONSE_STATUS
+from tindo import internal_error, redirect, found, see_other
+from tindo import to_str, to_unicode, quote, unquote, RESPONSE_STATUSES
+from tindo import get, post, Request, Response, route
+from tindo.tindo import _build_regex, _load_module
 from StringIO import StringIO
-from tindo.tindo import Response
-from tindo.tindo import ctx
-from tindo.tindo import _load_module
-from tindo.tindo import route
 
 
 class TestDict(unittest.TestCase):

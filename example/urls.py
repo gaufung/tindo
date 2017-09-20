@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 import random
-from tindo.tindo import view, ctx, route
-from tindo.http import redirect
+from tindo import view, ctx, route
+from tindo import redirect
 
 
 @view('index.html')

@@ -1,8 +1,8 @@
 # -*- coding:utf-8 -*-
 import unittest
-from tindo.local import Local
 import time
 from threading import Thread
+from tindo import Local
 
 
 class TestLocal(unittest.TestCase):

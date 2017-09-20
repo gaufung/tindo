@@ -130,3 +130,6 @@ if __name__ == '__main__':
 + update `route` decorator and deprecate `get` and `post` decorators. 17. Sep. 2017
 + re-organize `tindo.py` wsgi protocol using `__call__`. 18. Sep. 2017
 + add `local` module which behave like `threading.local`. 19. Sep. 2017
++ add `manage.py` script to control `test` and `app`, refactor the ugly `reload(sys)`
+statement, and use absolute import features. 20. Sep. 2017
++ add Tindo's `__init__.py` to make less `import` statement.

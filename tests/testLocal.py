@@ -1,13 +1,9 @@
 # -*- coding:utf-8 -*-
-
-import sys
-sys.path.insert(0, '../')
-reload(sys)
 import unittest
-import sys
 from tindo.local import Local
 import time
 from threading import Thread
+
 
 class TestLocal(unittest.TestCase):
     def testSingle(self):

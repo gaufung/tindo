@@ -1,9 +1,6 @@
-import sys
-sys.path.insert(0, '../')
-reload(sys)
 import unittest
-import sys
 import datetime
+import sys
 from tindo.utils import Dict, UTC
 from tindo.http import HttpError, RedirectError, bad_request, unauthorized, forbidden, RE_RESPONSE_STATUS
 from tindo.http import internal_error, redirect, found, see_other

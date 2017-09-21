@@ -441,7 +441,7 @@ class Response(object):
         self.set_cookie(name, '__deleted__', expires=0)
 
     def set_cookie(self, name, value, max_age=None,
-                   expires=None, path='/', domain=None,
+                   expires=None, path='/', domain='localhost:9000',
                    secure=False, http_only=True):
         if not hasattr(self, '_cookies'):
             self._cookies = {}
@@ -660,7 +660,7 @@ class Tindo(object):
             return r
         except RedirectError, e:
             response.set_header('location', e.location)
-            start_response(response.status, response.headers)
+            start_response(e.status, response.headers)
             return []
         except HttpError, e:
             start_response(e.status, response.headers)

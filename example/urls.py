@@ -9,7 +9,7 @@ from tindo import redirect
 def index():
     session = ctx.response.session
     session.number = random.randint(1, 100)
-    session.times = 10
+    session.times = 2
     return dict()
 
 
@@ -52,10 +52,14 @@ def game():
     number = ctx.response.session.number
     guess_number = i.get('number')
     if guess_number is not None:
-        guess_number = int(guess_number)
+        try:
+            guess_number = int(guess_number)
+        except ValueError, e:
+            return dict(status='Invalid guess')
         if times:
             times -= 1
             ctx.response.session.times = times
+            guess_number = int(guess_number)
             if guess_number > number:
                 return dict(success=False, status='Too Big', times=times)
             elif guess_number < number:

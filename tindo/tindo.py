@@ -42,9 +42,12 @@ def route(path, methods=None):
         methods = ['GET']
 
     def _decorator(func):
-        func.__web_route__ = path
-        func.__web_method__ = methods
-        return func
+        @functools.wraps(func)
+        def wrapper(*args, **kw):
+            return func(*args, **kw)
+        wrapper.__web_route__ = path
+        wrapper.__web_method__ = methods
+        return wrapper
     return _decorator
 
 
@@ -606,10 +609,9 @@ class Tindo(object):
         logging.info('Add route: %s' % str(r))
 
     def run(self, port=9000, host='127.0.0.1'):
-        from wsgiref.simple_server import make_server
+        from werkzeug.serving import run_simple
         logging.info('application (%s) will start at %s:%s' % (self._document_root, host, port))
-        server = make_server(host, port, self)
-        server.serve_forever()
+        run_simple(host, port, self)
 
     def __call__(self, environ, start_response):
         """

@@ -2,6 +2,11 @@
 
 A micro-framework based on wsgiref
 
+# 0 *install*
+```shell
+pip install tindo
+```
+
 # 1 **Main Components**
 
 + ~~*get* decorator: for HTTP GET Method~~

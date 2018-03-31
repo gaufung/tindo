@@ -206,7 +206,7 @@ def to_unicode(s, encoding='utf-8'):
     """Convert to unicode
     :param s: str or unicode
     :param encoding: encode type
-    :return: unocide
+    :return: unicode
     """
     return s.decode(encoding)
 
